@@ -49,8 +49,19 @@ public class SocketServer {
                 } catch (IOException e) {
                     // Ignore
                 }
+    @PreDestroy
+    void stopServer() {
+        System.out.println("Stopping server...");
+        running = false; // Stop accepting new connections
+        for (ClientHandler handler : clientHandlers) {
+            try {
+                handler.getClientSocket().close(); // Force close client sockets
+            } catch (IOException e) {
+                // Log or handle error if needed
             }
-            clientHandlers.clear();
         }
+        clientHandlers.clear();
+        System.out.println("Server stopped.");
     }
 }
+
