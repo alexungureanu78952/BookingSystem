@@ -29,13 +29,28 @@ public class SocketServer {
     void startServer() {
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             System.out.println("Server started on port " + port);
-            while (true) {
+            while (running) { // Use the 'running' flag
                 Socket clientSocket = serverSocket.accept();
                 System.out.println("New client connected: " + clientSocket.getInetAddress().getHostAddress());
-                new ClientHandler(clientSocket, bookingService).start();
+                ClientHandler clientHandler = new ClientHandler(clientSocket, bookingService, this); // Pass 'this'
+                clientHandlers.add(clientHandler); // Add to tracking list
+                clientHandler.start();
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            if (running) { // Only print stack trace if not a graceful shutdown
+                e.printStackTrace();
+            }
+        } finally {
+            System.out.println("Server stopping.");
+            // Ensure all client handlers are stopped if server is explicitly stopped before @PreDestroy
+            for (ClientHandler handler : clientHandlers) {
+                try {
+                    handler.getClientSocket().close(); // Force close client socket
+                } catch (IOException e) {
+                    // Ignore
+                }
+            }
+            clientHandlers.clear();
         }
     }
 }
