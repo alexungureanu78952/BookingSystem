@@ -6,9 +6,8 @@ import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import server.service.BookingService;
 
-import java.io.IOException;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @ApplicationScoped
 public class SocketServer {
@@ -18,6 +17,13 @@ public class SocketServer {
 
     @ConfigProperty(name = "app.socket.port")
     int port;
+
+    private List<ClientHandler> clientHandlers = new CopyOnWriteArrayList<>();
+    private volatile boolean running = true;
+
+    public void removeClientHandler(ClientHandler handler) {
+        clientHandlers.remove(handler);
+    }
 
     @Startup
     void startServer() {

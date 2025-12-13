@@ -1,0 +1,29 @@
+# To-Do List pentru Sistemul de Rezervări
+
+## Partea de Server (Quarkus)
+
+### 1. Gestionarea Conexiunilor și Comenzilor (`SocketServer` & `ClientHandler`)
+- [ ] **`ClientHandler.java`**: Implementează bucla principală `run()` pentru a citi comenzile trimise de client (ex: "LIST", "RESERVE <id_slot>", etc.).
+- [ ] **`ClientHandler.java`**: La pornirea conexiunii, generează un token/ID unic pentru client și stochează-l.
+- [ ] **`ClientHandler.java`**: Implementează logica pentru a parsa comenzile primite și a invoca metodele corespunzătoare în `BookingService`.
+- [ ] **`ClientHandler.java`**: Gestionează comanda "EXIT" pentru a închide corect socket-ul și a termina thread-ul clientului.
+- [ ] **`SocketServer.java`**: Asigură-te că oprirea serverului gestionează corect toate thread-urile active ale clienților.
+
+### 2. Logica de Business (`BookingService`)
+- [ ] **`BookingService.java`**: Implementează metoda `getAvailableSlots()` pentru a returna doar sloturile care nu sunt încă rezervate.
+- [ ] **`BookingService.java`**: Implementează metoda `createBooking(clientId, slotId)`. **CRUCIAL**: Această metodă trebuie să fie `synchronized` sau să folosească un mecanism de locking (ex: la nivel de tranzacție în baza de date) pentru a preveni rezervările duble pe același slot (condiție de concurență - race condition).
+- [ ] **`BookingService.java`**: Implementează metoda `getBookingsForClient(clientId)` pentru a afișa rezervările unui utilizator specific.
+- [ ] **`BookingService.java`**: Implementează metoda `cancelBooking(bookingId, clientId)` care verifică dacă ID-ul clientului corespunde cu cel din rezervare înainte de a o șterge.
+
+### 3. Baza de Date și Entități (JPA/Hibernate)
+- [ ] **`Booking.java` / `Slot.java`**: Revizuiește relațiile dintre entități. De exemplu, o relație `OneToOne` între `Slot` și `Booking` ar putea fi potrivită. Entitatea `Booking` ar trebui să conțină un câmp pentru `clientId`.
+- [ ] **`import.sql`**: Adaugă date inițiale pentru tabela `Slot` pentru a avea sloturi disponibile la pornirea serverului.
+
+## Partea de Client
+
+### 1. Comunicare și Interfață Utilizator (`Main.java`)
+- [ ] **`Main.java`**: Stabilește conexiunea la `SocketServer`.
+- [ ] **`Main.java`**: Implementează o buclă pentru a citi input-ul utilizatorului de la consolă (ex: "LIST", "RESERVE 1", "MY", "CANCEL 5", "EXIT").
+- [ ] **`Main.java`**: Trimite comenzile formatate corect către server prin intermediul socket-ului.
+- [ ] **`Main.java`**: Implementează logica pentru a primi răspunsuri de la server (într-un thread separat sau asincron pentru a nu bloca input-ul utilizatorului) și a le afișa în consolă.
+- [ ] **`Main.java`**: Gestionează comanda "EXIT" pentru a închide conexiunea și a termina aplicația client.
