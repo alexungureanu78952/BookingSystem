@@ -15,8 +15,8 @@ public class Booking extends PanacheEntity {
     @JoinColumn(name = "time_slot_id", nullable = false)
     public TimeSlot timeSlot;
 
-    @Column(name = "reserved_at", nullable = false)
-    public LocalDateTime reservedAt;
+    @Column(name = "booked_at", nullable = false)
+    public LocalDateTime bookedAt;
 
     @Column(nullable = false)
     public boolean active = true;
@@ -29,7 +29,7 @@ public class Booking extends PanacheEntity {
     public Booking(String clientToken, TimeSlot timeSlot) {
         this.clientToken = clientToken;
         this.timeSlot = timeSlot;
-        this.reservedAt = LocalDateTime.now();
+        this.bookedAt = LocalDateTime.now();
         this.active = true;
     }
 
