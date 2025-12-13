@@ -125,19 +125,19 @@ public class BookingService {
     public String getSystemStats() {
         long totalSlots = timeSlotRepository.count();
         long availableSlots = timeSlotRepository.findAvailable().size();
-        long totalReservations = bookingRepository.count();
-        long activeReservations = bookingRepository.count("active = true");
+        long totalBookings = bookingRepository.count();
+        long activeBookings = bookingRepository.count("active = true");
 
         return String.format(
                 "System Stats:\n" +
                         "  Total Slots: %d\n" +
                         "  Available: %d\n" +
                         "  Reserved: %d\n" +
-                        "  Total Reservations: %d\n" +
+                        "  Total Bookings: %d\n" +
                         "  Active: %d\n" +
                         "  Cancelled: %d",
                 totalSlots, availableSlots, (totalSlots - availableSlots),
-                totalReservations, activeReservations, (totalReservations - activeReservations)
+                totalBookings, activeBookings, (totalBookings - activeBookings)
         );
     }
 }
