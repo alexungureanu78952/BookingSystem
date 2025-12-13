@@ -1,14 +1,41 @@
 package server.entity;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntity;
-import jakarta.persistence.Entity;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "bookings")
 public class Booking extends PanacheEntity {
-    public String clientId;
-    @ManyToOne
-    public Slot slot;
+
+    @Column(name = "client_token", nullable = false, length = 100)
+    public String clientToken;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "time_slot_id", nullable = false)
+    public TimeSlot timeSlot;
+
+    @Column(name = "reserved_at", nullable = false)
+    public LocalDateTime reservedAt;
+
+    @Column(nullable = false)
+    public boolean active = true;
+
+    // Constructor implicit
+    public Booking() {
+    }
+
+    // Constructor util
+    public Booking(String clientToken, TimeSlot timeSlot) {
+        this.clientToken = clientToken;
+        this.timeSlot = timeSlot;
+        this.reservedAt = LocalDateTime.now();
+        this.active = true;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("Reservation[id=%d, client=%s, slot=%s, active=%b]",
+                id, clientToken, timeSlot.description, active);
+    }
 }

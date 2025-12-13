@@ -1,7 +1,7 @@
 package server.socket;
 
 import server.entity.Booking;
-import server.entity.Slot;
+import server.entity.TimeSlot;
 import server.service.BookingService;
 
 import java.io.BufferedReader;
@@ -42,9 +42,9 @@ public class ClientHandler extends Thread {
                 String command = tokens[0].toUpperCase();
                 switch (command) {
                     case "LIST":
-                        List<Slot> slots = bookingService.getAvailableSlots();
+                        List<TimeSlot> timeSlots = bookingService.getAvailableSlots();
                         out.println("Available slots:");
-                        slots.forEach(slot -> out.println("ID: " + slot.id + ", Name: " + slot.name));
+                        timeSlots.forEach(timeSlot -> out.println("ID: " + timeSlot.id + ", Name: " + timeSlot.name));
                         break;
                     case "RESERVE":
                         if (tokens.length > 1) {
@@ -65,7 +65,7 @@ public class ClientHandler extends Thread {
                     case "MY":
                         List<Booking> bookings = bookingService.getBookingsByClientId(clientId);
                         out.println("Your bookings:");
-                        bookings.forEach(booking -> out.println("Booking ID: " + booking.id + ", Slot: " + booking.slot.name));
+                        bookings.forEach(booking -> out.println("Booking ID: " + booking.id + ", Slot: " + booking.timeSlot.name));
                         break;
                     case "CANCEL":
                         if (tokens.length > 1) {

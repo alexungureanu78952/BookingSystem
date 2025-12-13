@@ -4,7 +4,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import server.entity.Booking;
-import server.entity.Slot;
+import server.entity.TimeSlot;
 import server.repository.BookingRepository;
 import server.repository.SlotRepository;
 
@@ -20,22 +20,22 @@ public class BookingService {
     @Inject
     BookingRepository bookingRepository;
 
-    public List<Slot> getAvailableSlots() {
+    public List<TimeSlot> getAvailableSlots() {
         return slotRepository.find("isBooked", false).list();
     }
 
     @Transactional
     public synchronized boolean createBooking(Long slotId, String clientId) {
-        Optional<Slot> optionalSlot = slotRepository.findByIdOptional(slotId);
+        Optional<TimeSlot> optionalSlot = slotRepository.findByIdOptional(slotId);
         if (optionalSlot.isPresent()) {
-            Slot slot = optionalSlot.get();
-            if (!slot.isBooked) {
-                slot.isBooked = true;
-                slotRepository.persist(slot);
+            TimeSlot timeSlot = optionalSlot.get();
+            if (!timeSlot.isBooked) {
+                timeSlot.isBooked = true;
+                slotRepository.persist(timeSlot);
 
                 Booking booking = new Booking();
                 booking.clientId = clientId;
-                booking.slot = slot;
+                booking.timeSlot = timeSlot;
                 bookingRepository.persist(booking);
                 return true;
             }
@@ -53,9 +53,9 @@ public class BookingService {
         if (optionalBooking.isPresent()) {
             Booking booking = optionalBooking.get();
             if (booking.clientId.equals(clientId)) {
-                Slot slot = booking.slot;
-                slot.isBooked = false;
-                slotRepository.persist(slot);
+                TimeSlot timeSlot = booking.timeSlot;
+                timeSlot.isBooked = false;
+                slotRepository.persist(timeSlot);
                 bookingRepository.delete(booking);
                 return true;
             }
