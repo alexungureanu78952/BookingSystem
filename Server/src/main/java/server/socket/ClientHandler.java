@@ -16,11 +16,18 @@ public class ClientHandler extends Thread {
     private final Socket clientSocket;
     private final BookingService bookingService;
     private final String clientId;
+    private final SocketServer socketServer; // New field
 
-    public ClientHandler(Socket socket, BookingService bookingService) {
+    public ClientHandler(Socket socket, BookingService bookingService, SocketServer socketServer) {
         this.clientSocket = socket;
         this.bookingService = bookingService;
         this.clientId = UUID.randomUUID().toString();
+        this.socketServer = socketServer; // Initialize new field
+    }
+
+    // New method to allow SocketServer to access clientSocket for graceful shutdown
+    public Socket getClientSocket() {
+        return clientSocket;
     }
 
     public void run() {
@@ -92,6 +99,7 @@ public class ClientHandler extends Thread {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+            socketServer.removeClientHandler(this); // Remove self from the list
             System.out.println("Client disconnected: " + clientSocket.getInetAddress().getHostAddress());
         }
     }
