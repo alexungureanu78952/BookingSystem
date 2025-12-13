@@ -35,7 +35,7 @@ public class Booking extends PanacheEntity {
 
     @Override
     public String toString() {
-        return String.format("Reservation[id=%d, client=%s, slot=%s, active=%b]",
+        return String.format("Booking[id=%d, client=%s, slot=%s, active=%b]",
                 id, clientToken, timeSlot.description, active);
     }
 }

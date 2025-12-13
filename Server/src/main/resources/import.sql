@@ -1,5 +1,11 @@
-INSERT INTO timeSlots (id, name, isBooked) VALUES (1, 'Luni 10:00-11:00', false);
-INSERT INTO timeSlots (id, name, isBooked) VALUES (2, 'Luni 11:00-12:00', false);
-INSERT INTO timeSlots (id, name, isBooked) VALUES (3, 'Marti 14:00-15:00', false);
-INSERT INTO timeSlots (id, name, isBooked) VALUES (4, 'Miercuri 10:00-11:00', false);
-INSERT INTO timeSlots (id, name, isBooked) VALUES (5, 'Joi 16:00-17:00', false);
+-- Date de test pentru dezvoltare
+INSERT INTO time_slots (id, start_time, end_time, description, available, version) VALUES
+(1, '2025-01-20 09:00:00', '2025-01-20 10:00:00', 'Morning Consultation', true, 0),
+(2, '2025-01-20 10:00:00', '2025-01-20 11:00:00', 'Mid-Morning Session', true, 0),
+(3, '2025-01-20 11:00:00', '2025-01-20 12:00:00', 'Late Morning Slot', true, 0),
+(4, '2025-01-20 14:00:00', '2025-01-20 15:00:00', 'Afternoon Session', true, 0),
+(5, '2025-01-20 15:00:00', '2025-01-20 16:00:00', 'Late Afternoon Slot', true, 0);
+
+-- Secvențele vor fi actualizate automat
+SELECT setval('time_slots_id_seq', (SELECT MAX(id) FROM time_slots));
+SELECT setval('bookings_id_seq', 1);

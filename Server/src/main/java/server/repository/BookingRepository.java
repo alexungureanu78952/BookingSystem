@@ -29,9 +29,9 @@ public class BookingRepository implements PanacheRepository<Booking> {
     /**
      * Găsește o rezervare activă specifică a unui client
      */
-    public Optional<Booking> findByIdAndClient(Long reservationId, String clientToken) {
+    public Optional<Booking> findByIdAndClient(Long bookingId, String clientToken) {
         return find("id = ?1 AND clientToken = ?2 AND active = true",
-                reservationId, clientToken)
+                bookingId, clientToken)
                 .firstResultOptional();
     }
 }
