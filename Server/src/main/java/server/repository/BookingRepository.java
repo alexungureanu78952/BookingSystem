@@ -14,7 +14,7 @@ public class BookingRepository implements PanacheRepository<Booking> {
      * Găsește toate rezervările active ale unui client
      */
     public List<Booking> findByClientToken(String clientToken) {
-        return list("clientToken = ?1 AND active = true ORDER BY reservedAt DESC",
+        return list("clientToken = ?1 AND active = true ORDER BY bookedAt DESC",
                 clientToken);
     }
 
