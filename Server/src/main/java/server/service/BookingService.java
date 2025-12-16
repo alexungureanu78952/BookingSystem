@@ -25,6 +25,7 @@ public class BookingService {
      * LIST - Afișează toate sloturile disponibile
      * Punctaj: 6p
      */
+    @Transactional
     public List<TimeSlot> getAvailableSlots() {
         LOG.info("Fetching available time slots");
         return timeSlotRepository.findAvailable();
@@ -77,6 +78,7 @@ public class BookingService {
      * MY - Afișează booking-urile proprii
      * Punctaj: 6p
      */
+    @Transactional
     public List<Booking> getClientBookings(String clientToken) {
         LOG.info(String.format("Fetching bookings for client %s", clientToken));
         return bookingRepository.findByClientToken(clientToken);

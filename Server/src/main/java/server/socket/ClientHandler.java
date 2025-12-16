@@ -146,27 +146,28 @@ public class ClientHandler implements Runnable {
     private void handleList() {
         List<TimeSlot> slots = bookingService.getAvailableSlots();
 
+        out.println("SLOTS_START");
+
         if (slots.isEmpty()) {
             out.println("INFO|No available slots at the moment.");
-            return;
-        }
+        } else {
+            out.println(String.format("%-5s | %-20s | %-15s | %-15s",
+                    "ID", "Description", "Start", "End"));
+            out.println("─".repeat(65));
 
-        out.println("SLOTS_START");
-        out.println(String.format("%-5s | %-20s | %-15s | %-15s",
-                "ID", "Description", "Start", "End"));
-        out.println("─".repeat(65));
+            for (TimeSlot slot : slots) {
+                out.println(String.format("%-5d | %-20s | %-15s | %-15s",
+                        slot.id,
+                        slot.description,
+                        slot.startTime.format(DATE_FORMATTER),
+                        slot.endTime.format(TIME_FORMATTER)
+                ));
+            }
 
-        for (TimeSlot slot : slots) {
-            out.println(String.format("%-5d | %-20s | %-15s | %-15s",
-                    slot.id,
-                    slot.description,
-                    slot.startTime.format(DATE_FORMATTER),
-                    slot.endTime.format(TIME_FORMATTER)
-            ));
+            out.println(String.format("INFO|Total available slots: %d", slots.size()));
         }
 
         out.println("SLOTS_END");
-        out.println(String.format("INFO|Total available slots: %d", slots.size()));
     }
 
     /**
