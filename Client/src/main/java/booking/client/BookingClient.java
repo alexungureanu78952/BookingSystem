@@ -119,16 +119,16 @@ public class BookingClient {
                 
             } else if (first instanceof BookingDTO) {
                 List<BookingDTO> bookings = (List<BookingDTO>) list;
-                System.out.println("\n" + "=".repeat(70));
-                System.out.println(String.format("%-5s | %-20s | %-20s | %-15s", "ID", "Slot Description", "Booked At", "Slot Time"));
-                System.out.println("─".repeat(70));
+                System.out.println("\n" + "=".repeat(85));
+                System.out.println(String.format("%-5s | %-8s | %-20s | %-20s | %-15s", "ID", "Slot ID", "Slot Description", "Booked At", "Slot Time"));
+                System.out.println("─".repeat(85));
                 for (BookingDTO b : bookings) {
-                    System.out.println(String.format("%-5d | %-20s | %-20s | %-15s",
-                            b.id, b.slotDescription,
+                    System.out.println(String.format("%-5d | %-8d | %-20s | %-20s | %-15s",
+                            b.id, b.slotId, b.slotDescription,
                             b.bookedAt.format(DATE_FORMATTER),
                             b.slotTime.format(DATE_FORMATTER)));
                 }
-                System.out.println("=".repeat(70));
+                System.out.println("=".repeat(85));
             }
         } else if (data instanceof BookingDTO) {
             BookingDTO b = (BookingDTO) data;

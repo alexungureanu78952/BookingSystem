@@ -111,6 +111,7 @@ public class ClientHandler implements Runnable {
             Booking booking = bookingService.createBooking(clientToken, cmd.getSlotId());
             BookingDTO dto = new BookingDTO(
                     booking.id,
+                    booking.timeSlot.id,
                     booking.timeSlot.description,
                     booking.bookedAt,
                     booking.timeSlot.startTime
@@ -128,6 +129,7 @@ public class ClientHandler implements Runnable {
         for (Booking booking : bookings) {
             dtos.add(new BookingDTO(
                     booking.id,
+                    booking.timeSlot.id,
                     booking.timeSlot.description,
                     booking.bookedAt,
                     booking.timeSlot.startTime
