@@ -4,67 +4,66 @@ import server.entity.Booking;
 import server.entity.TimeSlot;
 import server.exception.BookingException;
 import server.service.BookingService;
+import shareable.*;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.Socket;
-import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
 /**
- * Gestionează comunicarea cu un singur client
- * Fiecare instanță rulează într-un thread separat
- *
- * Punctaj: Thread-uri (10p) + Funcționalități (30p)
+ * Gestionează comunicarea cu un singur client folosind obiecte serializate.
  */
 public class ClientHandler implements Runnable {
 
     private static final Logger LOG = Logger.getLogger(ClientHandler.class.getName());
-    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     private final Socket socket;
     private final String clientToken;
     private final BookingService bookingService;
+    private final SocketServer socketServer;
 
-    private BufferedReader in;
-    private PrintWriter out;
+    private ObjectInputStream in;
+    private ObjectOutputStream out;
 
-    public ClientHandler(Socket socket, String clientToken, BookingService bookingService) {
+    public ClientHandler(Socket socket, String clientToken, BookingService bookingService, SocketServer socketServer) {
         this.socket = socket;
         this.clientToken = clientToken;
         this.bookingService = bookingService;
+        this.socketServer = socketServer;
     }
 
     @Override
     public void run() {
         try {
-            // Inițializează stream-urile de I/O
-            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            out = new PrintWriter(socket.getOutputStream(), true);
+            // Inițializare stream-uri
+            // IMPORTANT: Out stream trebuie creat primul și flush-uit pentru a scrie header-ul
+            out = new ObjectOutputStream(socket.getOutputStream());
+            out.flush();
+            in = new ObjectInputStream(socket.getInputStream());
 
             // Trimite mesaj de bun venit cu token-ul
             sendWelcomeMessage();
 
-            // Loop principal - procesează comenzi
-            String command;
-            while ((command = in.readLine()) != null) {
-                command = command.trim();
-
-                if (command.isEmpty()) {
-                    continue;
-                }
-
-                LOG.info(String.format("[%s] Command received: %s", clientToken, command));
-
-                handleCommand(command);
-
-                // EXIT oprește loop-ul
-                if (command.equalsIgnoreCase("EXIT")) {
+            // Loop principal
+            while (true) {
+                try {
+                    Object object = in.readObject();
+                    if (object instanceof Command) {
+                        handleCommand((Command) object);
+                        
+                        if (object instanceof ExitCommand) {
+                            break;
+                        }
+                    }
+                } catch (IOException e) {
+                    LOG.info(String.format("[%s] Client disconnected unexpectedly", clientToken));
                     break;
+                } catch (ClassNotFoundException e) {
+                    LOG.warning("Received unknown object class: " + e.getMessage());
                 }
             }
 
@@ -72,208 +71,93 @@ public class ClientHandler implements Runnable {
             LOG.warning(String.format("[%s] Connection error: %s", clientToken, e.getMessage()));
         } finally {
             closeConnection();
+            socketServer.unregisterClient(clientToken);
         }
     }
 
-    /**
-     * Trimite mesaj de bun venit
-     */
-    private void sendWelcomeMessage() {
-        out.println("CONNECTED|" + clientToken);
-        out.println("INFO|Welcome to the Booking System!");
-        out.println("INFO|Available commands: LIST, RESERVE <slot_id>, MY, CANCEL <booking_id>, EXIT");
+    private void sendWelcomeMessage() throws IOException {
+        // Trimitem un răspuns special de conectare
+        out.writeObject(new ServerResponse(ServerResponse.Status.INFO, "CONNECTED|" + clientToken));
+        out.writeObject(new ServerResponse(ServerResponse.Status.INFO, "Welcome to the Enterprise Booking System!"));
+        out.flush();
     }
 
-    /**
-     * Procesează comenzile primite de la client
-     * Punctaj: Funcționalități (30p total)
-     */
-    private void handleCommand(String command) {
-        String[] parts = command.split("\\s+");
-        String action = parts[0].toUpperCase();
-
+    private void handleCommand(Command command) throws IOException {
         try {
-            switch (action) {
-                case "LIST":
-                    handleList(); // 6p
-                    break;
-
-                case "RESERVE":
-                    if (parts.length < 2) {
-                        out.println("ERROR|Usage: RESERVE <slot_id>");
-                        out.println("DONE");
-                    } else {
-                        handleReserve(Long.parseLong(parts[1])); // 6p
-                    }
-                    break;
-
-                case "MY":
-                    handleMyBookings(); // 6p
-                    break;
-
-                case "CANCEL":
-                    if (parts.length < 2) {
-                        out.println("ERROR|Usage: CANCEL <booking_id>");
-                        out.println("DONE");
-                    } else {
-                        handleCancel(Long.parseLong(parts[1])); // 6p
-                    }
-                    break;
-
-                case "EXIT":
-                    handleExit(); // 6p
-                    break;
-
-                case "HELP":
-                    handleHelp();
-                    break;
-
-                default:
-                    out.println("ERROR|Unknown command: " + action);
-                    out.println("INFO|Type HELP for available commands");
-                    out.println("DONE");
+            if (command instanceof ListSlotsCommand) {
+                handleList();
+            } else if (command instanceof ReserveCommand) {
+                handleReserve((ReserveCommand) command);
+            } else if (command instanceof MyBookingsCommand) {
+                handleMyBookings();
+            } else if (command instanceof CancelCommand) {
+                handleCancel((CancelCommand) command);
+            } else if (command instanceof ExitCommand) {
+                handleExit();
+            } else {
+                out.writeObject(new ServerResponse(ServerResponse.Status.ERROR, "Unknown command type"));
             }
-
-        } catch (NumberFormatException e) {
-            out.println("ERROR|Invalid ID format. Please use numbers only.");
-            out.println("DONE");
         } catch (Exception e) {
-            out.println("ERROR|" + e.getMessage());
-            out.println("DONE");
-            LOG.warning(String.format("[%s] Error handling command: %s", clientToken, e.getMessage()));
+            out.writeObject(new ServerResponse(ServerResponse.Status.ERROR, "Server error: " + e.getMessage()));
         }
+        out.flush();
     }
 
-    /**
-     * LIST - Afișează toate sloturile disponibile
-     * Punctaj: 6p
-     */
-    private void handleList() {
+    private void handleList() throws IOException {
         List<TimeSlot> slots = bookingService.getAvailableSlots();
-
-        out.println("SLOTS_START");
-
-        if (slots.isEmpty()) {
-            out.println("INFO|No available slots at the moment.");
-        } else {
-            out.println(String.format("%-5s | %-20s | %-15s | %-15s",
-                    "ID", "Description", "Start", "End"));
-            out.println("─".repeat(65));
-
-            for (TimeSlot slot : slots) {
-                out.println(String.format("%-5d | %-20s | %-15s | %-15s",
-                        slot.id,
-                        slot.description,
-                        slot.startTime.format(DATE_FORMATTER),
-                        slot.endTime.format(TIME_FORMATTER)
-                ));
-            }
-
-            out.println(String.format("INFO|Total available slots: %d", slots.size()));
+        List<TimeSlotDTO> dtos = new ArrayList<>();
+        
+        for (TimeSlot slot : slots) {
+            dtos.add(new TimeSlotDTO(slot.id, slot.description, slot.startTime, slot.endTime));
         }
 
-        out.println("SLOTS_END");
+        out.writeObject(new ServerResponse(ServerResponse.Status.SUCCESS, "Slots fetched", dtos));
     }
 
-    /**
-     * RESERVE - Creează o rezervare nouă
-     * Punctaj: 6p (+ 10p concurență din service)
-     */
-    private void handleReserve(Long slotId) {
+    private void handleReserve(ReserveCommand cmd) throws IOException {
         try {
-            Booking booking = bookingService.createBooking(clientToken, slotId);
-
-            out.println("SUCCESS|Booking created successfully!");
-            out.println(String.format("INFO|Booking ID: %d", booking.id));
-            out.println(String.format("INFO|Slot: %s", booking.timeSlot.description));
-            out.println(String.format("INFO|Time: %s - %s",
-                    booking.timeSlot.startTime.format(DATE_FORMATTER),
-                    booking.timeSlot.endTime.format(TIME_FORMATTER)
-            ));
-
-        } catch (BookingException e) {
-            out.println("ERROR|" + e.getMessage());
-        }
-        out.println("DONE");
-    }
-
-    /**
-     * MY - Afișează rezervările proprii
-     * Punctaj: 6p
-     */
-    private void handleMyBookings() {
-        List<Booking> bookings = bookingService.getClientBookings(clientToken);
-
-        if (bookings.isEmpty()) {
-            out.println("INFO|You have no active bookings.");
-            return;
-        }
-
-        out.println("BOOKINGS_START");
-        out.println(String.format("%-5s | %-20s | %-20s | %-15s",
-                "ID", "Slot Description", "Booked At", "Slot Time"));
-        out.println("─".repeat(70));
-
-        for (Booking booking : bookings) {
-            out.println(String.format("%-5d | %-20s | %-20s | %-15s",
+            Booking booking = bookingService.createBooking(clientToken, cmd.getSlotId());
+            BookingDTO dto = new BookingDTO(
                     booking.id,
                     booking.timeSlot.description,
-                    booking.bookedAt.format(DATE_FORMATTER),
-                    booking.timeSlot.startTime.format(DATE_FORMATTER)
+                    booking.bookedAt,
+                    booking.timeSlot.startTime
+            );
+            out.writeObject(new ServerResponse(ServerResponse.Status.SUCCESS, "Booking created successfully!", dto));
+        } catch (BookingException e) {
+            out.writeObject(new ServerResponse(ServerResponse.Status.ERROR, e.getMessage()));
+        }
+    }
+
+    private void handleMyBookings() throws IOException {
+        List<Booking> bookings = bookingService.getClientBookings(clientToken);
+        List<BookingDTO> dtos = new ArrayList<>();
+        
+        for (Booking booking : bookings) {
+            dtos.add(new BookingDTO(
+                    booking.id,
+                    booking.timeSlot.description,
+                    booking.bookedAt,
+                    booking.timeSlot.startTime
             ));
         }
-
-        out.println("BOOKINGS_END");
-        out.println(String.format("INFO|Total active bookings: %d", bookings.size()));
+        
+        out.writeObject(new ServerResponse(ServerResponse.Status.SUCCESS, "Active bookings fetched", dtos));
     }
 
-    /**
-     * CANCEL - Anulează o rezervare
-     * Punctaj: 6p
-     */
-    private void handleCancel(Long bookingId) {
+    private void handleCancel(CancelCommand cmd) throws IOException {
         try {
-            bookingService.cancelBooking(clientToken, bookingId);
-
-            out.println("SUCCESS|Booking cancelled successfully!");
-            out.println(String.format("INFO|Booking ID %d has been cancelled.", bookingId));
-            out.println("INFO|The slot is now available for other clients.");
-
+            bookingService.cancelBooking(clientToken, cmd.getBookingId());
+            out.writeObject(new ServerResponse(ServerResponse.Status.SUCCESS, "Booking cancelled successfully!"));
         } catch (BookingException e) {
-            out.println("ERROR|" + e.getMessage());
+            out.writeObject(new ServerResponse(ServerResponse.Status.ERROR, e.getMessage()));
         }
-        out.println("DONE");
     }
 
-    /**
-     * EXIT - Încheie sesiunea
-     * Punctaj: 6p
-     */
-    private void handleExit() {
-        out.println("GOODBYE|Thank you for using the Booking System!");
-        out.println(String.format("INFO|Session ended for %s", clientToken));
-        LOG.info(String.format("[%s] Client disconnected", clientToken));
+    private void handleExit() throws IOException {
+        out.writeObject(new ServerResponse(ServerResponse.Status.DONE, "Goodbye!"));
     }
 
-    /**
-     * HELP - Afișează ajutor
-     */
-    private void handleHelp() {
-        out.println("HELP_START");
-        out.println("Available commands:");
-        out.println("  LIST              - Show all available time slots");
-        out.println("  RESERVE <id>      - Reserve a time slot by ID");
-        out.println("  MY                - Show your active bookings");
-        out.println("  CANCEL <id>       - Cancel a booking by ID");
-        out.println("  EXIT              - Close connection");
-        out.println("  HELP              - Show this help message");
-        out.println("HELP_END");
-    }
-
-    /**
-     * Închide conexiunea elegant
-     * Punctaj: Socket Server (5p)
-     */
     private void closeConnection() {
         try {
             if (in != null) in.close();
@@ -281,10 +165,8 @@ public class ClientHandler implements Runnable {
             if (socket != null && !socket.isClosed()) {
                 socket.close();
             }
-            LOG.info(String.format("[%s] Connection closed", clientToken));
         } catch (IOException e) {
-            LOG.warning(String.format("[%s] Error closing connection: %s",
-                    clientToken, e.getMessage()));
+            // Ignorăm
         }
     }
 }

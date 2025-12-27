@@ -10,7 +10,9 @@ import jakarta.inject.Inject;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -25,6 +27,9 @@ public class SocketServer {
     private ServerSocket serverSocket;
     private ExecutorService executorService;
     private volatile boolean running = false;
+    
+    // Lista thread-safe a clienților conectați
+    private final Map<String, ClientHandler> activeClients = new ConcurrentHashMap<>();
 
     @Inject
     BookingService bookingService;
@@ -77,11 +82,17 @@ public class SocketServer {
                     ClientHandler handler = new ClientHandler(
                             clientSocket,
                             clientToken,
-                            bookingService
+                            bookingService,
+                            this
                     );
+                    
+                    // Înregistrează clientul
+                    activeClients.put(clientToken, handler);
 
                     // Execută handler-ul în thread pool
                     executorService.submit(handler);
+                    
+                    LOG.info("Active clients: " + activeClients.size());
 
                 } catch (IOException e) {
                     if (running) {
@@ -94,6 +105,11 @@ public class SocketServer {
             LOG.severe("Failed to start socket server: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+    
+    public void unregisterClient(String token) {
+        activeClients.remove(token);
+        LOG.info("Client disconnected: " + token + ". Active clients: " + activeClients.size());
     }
 
     /**
