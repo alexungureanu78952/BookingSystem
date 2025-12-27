@@ -144,6 +144,9 @@ public class BookingClient {
                     System.out.println("=".repeat(70));
                     return;
 
+                case "DONE":
+                    return;
+
                 default:
                     if (inList) {
                         System.out.println(line);

@@ -101,6 +101,7 @@ public class ClientHandler implements Runnable {
                 case "RESERVE":
                     if (parts.length < 2) {
                         out.println("ERROR|Usage: RESERVE <slot_id>");
+                        out.println("DONE");
                     } else {
                         handleReserve(Long.parseLong(parts[1])); // 6p
                     }
@@ -113,6 +114,7 @@ public class ClientHandler implements Runnable {
                 case "CANCEL":
                     if (parts.length < 2) {
                         out.println("ERROR|Usage: CANCEL <booking_id>");
+                        out.println("DONE");
                     } else {
                         handleCancel(Long.parseLong(parts[1])); // 6p
                     }
@@ -129,12 +131,15 @@ public class ClientHandler implements Runnable {
                 default:
                     out.println("ERROR|Unknown command: " + action);
                     out.println("INFO|Type HELP for available commands");
+                    out.println("DONE");
             }
 
         } catch (NumberFormatException e) {
             out.println("ERROR|Invalid ID format. Please use numbers only.");
+            out.println("DONE");
         } catch (Exception e) {
             out.println("ERROR|" + e.getMessage());
+            out.println("DONE");
             LOG.warning(String.format("[%s] Error handling command: %s", clientToken, e.getMessage()));
         }
     }
@@ -189,6 +194,7 @@ public class ClientHandler implements Runnable {
         } catch (BookingException e) {
             out.println("ERROR|" + e.getMessage());
         }
+        out.println("DONE");
     }
 
     /**
@@ -236,6 +242,7 @@ public class ClientHandler implements Runnable {
         } catch (BookingException e) {
             out.println("ERROR|" + e.getMessage());
         }
+        out.println("DONE");
     }
 
     /**
