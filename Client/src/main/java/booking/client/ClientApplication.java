@@ -82,9 +82,9 @@ public class ClientApplication {
         System.out.println("\n" + "═".repeat(70));
         System.out.println("  ____              _    _                ____            _                 ");
         System.out.println(" | __ )  ___   ___ | | _(_)_ __   __ _  / ___| _   _ ___| |_ ___ _ __ ___  ");
-        System.out.println(" |  _ \ / _ \ / _ \| |/ / | '_ \ / _` | \___ \| | | / __| __/ _ \ '_ ` _ \ ");
-        System.out.println(" | |_) | (_) | (_) |   <| | | | | (_| |  ___) | |_| \__ \ ||  __/ | | | | |");
-        System.out.println(" |____/ \___/ \___/|_|\_\_|_| |_|\__, | |____/ \__, |___/\__\___|_| |_| |_|");
+        System.out.println(" |  _ \\ / _ \\ / _ \\| |/ / | '_ \\ / _` | \\___ \\| | | / __| __/ _ \\ '_ ` _ \\ ");
+        System.out.println(" | |_) | (_) | (_) |   <| | | | | (_| |  ___) | |_| \\__ \\ ||  __/ | | | | |");
+        System.out.println(" |____/ \\___/ \\___/|_|\\_\\_|_| |_|\\__, | |____/ \\__, |___/\\__\\___|_| |_| |_|");
         System.out.println("                                  |___/         |___/                        ");
         System.out.println("═".repeat(70));
         System.out.println();

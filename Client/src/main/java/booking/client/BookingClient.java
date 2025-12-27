@@ -29,8 +29,8 @@ public class BookingClient {
 
             try {
                 ServerResponse response = (ServerResponse) in.readObject();
-                if (response.getStatus() == ServerResponse.Status.INFO && response.getMessage().startsWith("CONNECTED|\`")) {
-                    clientToken = response.getMessage().split("\\\|")[1];
+                if (response.getStatus() == ServerResponse.Status.INFO && response.getMessage().startsWith("CONNECTED|")) {
+                    clientToken = response.getMessage().split("\\|")[1];
                     connected = true;
 
                     ServerResponse welcome = (ServerResponse) in.readObject();
