@@ -1,47 +1,48 @@
 package booking.client;
 
-import java.io.BufferedReader;
+import shareable.*;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
 
-/**
- * Client pentru comunicare cu serverul de booking
- * Punctaj: Client (10p)
- */
 public class BookingClient {
 
+    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+
     private Socket socket;
-    private BufferedReader in;
-    private PrintWriter out;
+    private ObjectInputStream in;
+    private ObjectOutputStream out;
     private String clientToken;
     private boolean connected = false;
 
-    /**
-     * Conectare la server
-     */
     public void connect(String host, int port) throws IOException {
         try {
             socket = new Socket(host, port);
-            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            out = new PrintWriter(socket.getOutputStream(), true);
+            
+            in = new ObjectInputStream(socket.getInputStream());
+            out = new ObjectOutputStream(socket.getOutputStream());
+            out.flush();
 
-            // Primește mesajul de conectare și extrage token-ul
-            String response = in.readLine();
-            if (response != null && response.startsWith("CONNECTED|")) {
-                clientToken = response.split("\\|")[1];
-                connected = true;
+            try {
+                ServerResponse response = (ServerResponse) in.readObject();
+                if (response.getStatus() == ServerResponse.Status.INFO && response.getMessage().startsWith("CONNECTED|\`")) {
+                    clientToken = response.getMessage().split("\\\|")[1];
+                    connected = true;
 
-                // Citește mesajele de bun venit
-                readWelcomeMessages();
-
-                System.out.println("\n✓ Connected to Booking System");
-                System.out.println("✓ Your client token: " + clientToken);
-                System.out.println();
-
-            } else {
-                throw new IOException("Invalid server response");
+                    ServerResponse welcome = (ServerResponse) in.readObject();
+                    System.out.println("\n✓ Connected to Booking System");
+                    System.out.println("✓ Your client token: " + clientToken);
+                    System.out.println("ℹ " + welcome.getMessage());
+                    System.out.println();
+                } else {
+                    throw new IOException("Invalid server handshake");
+                }
+            } catch (ClassNotFoundException e) {
+                throw new IOException("Class not found during handshake");
             }
 
         } catch (IOException e) {
@@ -50,124 +51,104 @@ public class BookingClient {
         }
     }
 
-    /**
-     * Citește mesajele de bun venit de la server
-     */
-    private void readWelcomeMessages() throws IOException {
-        String line;
-        while ((line = in.readLine()) != null) {
-            if (line.startsWith("INFO|")) {
-                // Nu afișăm mesajele INFO de bun venit, le procesează ClientApplication
-                break;
-            }
-        }
-    }
-
-    /**
-     * Trimite comandă la server și returnează răspunsul
-     */
-    public void sendCommand(String command) throws IOException {
+    public void sendCommand(Command command) throws IOException {
         if (!connected) {
             throw new IOException("Not connected to server");
         }
 
-        out.println(command);
+        out.writeObject(command);
+        out.flush();
+        
         handleResponse();
     }
 
-    /**
-     * Procesează răspunsul de la server
-     */
     private void handleResponse() throws IOException {
-        String line;
-        boolean inList = false;
-
-        while ((line = in.readLine()) != null) {
-            String[] parts = line.split("\\|", 2);
-            String type = parts[0];
-            String message = parts.length > 1 ? parts[1] : "";
-
-            switch (type) {
-                case "SLOTS_START":
-                    inList = true;
-                    System.out.println("\n" + "=".repeat(70));
-                    System.out.println("Available Time Slots:");
-                    System.out.println("=".repeat(70));
-                    break;
-
-                case "SLOTS_END":
-                    inList = false;
-                    System.out.println("=".repeat(70));
-                    return;
-
-                case "BOOKINGS_START":
-                    inList = true;
-                    System.out.println("\n" + "=".repeat(70));
-                    System.out.println("Your Active Bookings:");
-                    System.out.println("=".repeat(70));
-                    break;
-
-                case "BOOKINGS_END":
-                    inList = false;
-                    System.out.println("=".repeat(70));
-                    return;
-
-                case "SUCCESS":
-                    System.out.println("\n✓ " + message);
-                    break;
-
-                case "ERROR":
-                    System.out.println("\n✗ Error: " + message);
-                    break;
-
-                case "INFO":
-                    if (!inList) {
-                        System.out.println("ℹ " + message);
-                    } else {
-                        System.out.println(message);
-                    }
-                    if (message.startsWith("Total") || message.startsWith("You have")) {
-                        return;
+        try {
+            ServerResponse response = (ServerResponse) in.readObject();
+            
+            switch (response.getStatus()) {
+                case SUCCESS:
+                    System.out.println("\n✓ " + response.getMessage());
+                    if (response.getData() != null) {
+                        printData(response.getData());
                     }
                     break;
-
-                case "GOODBYE":
-                    System.out.println("\n" + message);
+                    
+                case ERROR:
+                    System.out.println("\n✗ Error: " + response.getMessage());
+                    break;
+                    
+                case INFO:
+                    System.out.println("ℹ " + response.getMessage());
+                    break;
+                    
+                case DONE:
+                    System.out.println("\n" + response.getMessage());
                     connected = false;
-                    return;
-
-                case "HELP_START":
-                    System.out.println("\n" + "=".repeat(70));
-                    break;
-
-                case "HELP_END":
-                    System.out.println("=".repeat(70));
-                    return;
-
-                case "DONE":
-                    return;
-
-                default:
-                    if (inList) {
-                        System.out.println(line);
-                    }
                     break;
             }
+            
+        } catch (ClassNotFoundException e) {
+            System.err.println("Error decoding response: " + e.getMessage());
+        }
+    }
+    
+    @SuppressWarnings("unchecked")
+    private void printData(Object data) {
+        if (data instanceof List<?>) {
+            List<?> list = (List<?>) data;
+            if (list.isEmpty()) {
+                System.out.println("No items found.");
+                return;
+            }
+            
+            Object first = list.get(0);
+            
+            if (first instanceof TimeSlotDTO) {
+                List<TimeSlotDTO> slots = (List<TimeSlotDTO>) list;
+                System.out.println("\n" + "=".repeat(70));
+                System.out.println(String.format("%-5s | %-20s | %-15s | %-15s", "ID", "Description", "Start", "End"));
+                System.out.println("─".repeat(70));
+                for (TimeSlotDTO slot : slots) {
+                    System.out.println(String.format("%-5d | %-20s | %-15s | %-15s",
+                            slot.id, slot.description, 
+                            slot.startTime.format(DATE_FORMATTER), 
+                            slot.endTime.format(TIME_FORMATTER)));
+                }
+                System.out.println("=".repeat(70));
+                
+            } else if (first instanceof BookingDTO) {
+                List<BookingDTO> bookings = (List<BookingDTO>) list;
+                System.out.println("\n" + "=".repeat(70));
+                System.out.println(String.format("%-5s | %-20s | %-20s | %-15s", "ID", "Slot Description", "Booked At", "Slot Time"));
+                System.out.println("─".repeat(70));
+                for (BookingDTO b : bookings) {
+                    System.out.println(String.format("%-5d | %-20s | %-20s | %-15s",
+                            b.id, b.slotDescription,
+                            b.bookedAt.format(DATE_FORMATTER),
+                            b.slotTime.format(DATE_FORMATTER)));
+                }
+                System.out.println("=".repeat(70));
+            }
+        } else if (data instanceof BookingDTO) {
+            BookingDTO b = (BookingDTO) data;
+            System.out.println("Details: " + b.slotDescription + " at " + b.slotTime.format(DATE_FORMATTER));
         }
     }
 
-    /**
-     * Verifică dacă clientul este conectat
-     */
     public boolean isConnected() {
         return connected && socket != null && !socket.isClosed();
     }
 
-    /**
-     * Închide conexiunea
-     */
     public void close() {
         try {
+            if (connected) {
+                try {
+                    out.writeObject(new ExitCommand());
+                    out.flush();
+                } catch (Exception e) {
+                }
+            }
             connected = false;
             if (in != null) in.close();
             if (out != null) out.close();
@@ -179,9 +160,6 @@ public class BookingClient {
         }
     }
 
-    /**
-     * Returnează token-ul clientului
-     */
     public String getClientToken() {
         return clientToken;
     }

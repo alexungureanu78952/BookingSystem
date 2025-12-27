@@ -14,9 +14,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
-/**
- * Gestionează comunicarea cu un singur client folosind obiecte serializate.
- */
 public class ClientHandler implements Runnable {
 
     private static final Logger LOG = Logger.getLogger(ClientHandler.class.getName());
@@ -39,16 +36,12 @@ public class ClientHandler implements Runnable {
     @Override
     public void run() {
         try {
-            // Inițializare stream-uri
-            // IMPORTANT: Out stream trebuie creat primul și flush-uit pentru a scrie header-ul
             out = new ObjectOutputStream(socket.getOutputStream());
             out.flush();
             in = new ObjectInputStream(socket.getInputStream());
 
-            // Trimite mesaj de bun venit cu token-ul
             sendWelcomeMessage();
 
-            // Loop principal
             while (true) {
                 try {
                     Object object = in.readObject();
@@ -76,7 +69,6 @@ public class ClientHandler implements Runnable {
     }
 
     private void sendWelcomeMessage() throws IOException {
-        // Trimitem un răspuns special de conectare
         out.writeObject(new ServerResponse(ServerResponse.Status.INFO, "CONNECTED|" + clientToken));
         out.writeObject(new ServerResponse(ServerResponse.Status.INFO, "Welcome to the Enterprise Booking System!"));
         out.flush();
@@ -166,7 +158,6 @@ public class ClientHandler implements Runnable {
                 socket.close();
             }
         } catch (IOException e) {
-            // Ignorăm
         }
     }
 }

@@ -21,11 +21,9 @@ public class Booking extends PanacheEntity {
     @Column(nullable = false)
     public boolean active = true;
 
-    // Constructor implicit
     public Booking() {
     }
 
-    // Constructor util
     public Booking(String clientToken, TimeSlot timeSlot) {
         this.clientToken = clientToken;
         this.timeSlot = timeSlot;

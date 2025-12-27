@@ -18,9 +18,6 @@ public class BookingRepository implements PanacheRepository<Booking> {
     @Inject
     EntityManager em;
 
-    /**
-     * Găsește toate rezervările active ale unui client folosind CriteriaBuilder
-     */
     public List<Booking> findByClientToken(String clientToken) {
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Booking> cq = cb.createQuery(Booking.class);
@@ -38,9 +35,6 @@ public class BookingRepository implements PanacheRepository<Booking> {
         return em.createQuery(cq).getResultList();
     }
 
-    /**
-     * Verifică dacă un slot are deja o rezervare activă
-     */
     public Optional<Booking> findActiveBySlotId(Long slotId) {
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Booking> cq = cb.createQuery(Booking.class);
@@ -57,9 +51,6 @@ public class BookingRepository implements PanacheRepository<Booking> {
         return em.createQuery(cq).getResultStream().findFirst();
     }
 
-    /**
-     * Găsește o rezervare activă specifică a unui client
-     */
     public Optional<Booking> findByIdAndClient(Long bookingId, String clientToken) {
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Booking> cq = cb.createQuery(Booking.class);

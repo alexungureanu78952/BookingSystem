@@ -1,12 +1,9 @@
 package booking.client;
 
+import shareable.*;
 import java.io.IOException;
 import java.util.Scanner;
 
-/**
- * Aplicația principală a clientului
- * Oferă un meniu interactiv în consolă
- */
 public class ClientApplication {
 
     private static final String SERVER_HOST = "localhost";
@@ -28,7 +25,6 @@ public class ClientApplication {
     public void run() {
         printBanner();
 
-        // Conectare la server
         try {
             System.out.println("Connecting to booking server...");
             client.connect(SERVER_HOST, SERVER_PORT);
@@ -38,7 +34,6 @@ public class ClientApplication {
             return;
         }
 
-        // Loop principal
         boolean running = true;
         while (running && client.isConnected()) {
             try {
@@ -75,6 +70,7 @@ public class ClientApplication {
 
             } catch (Exception e) {
                 System.err.println("✗ Error: " + e.getMessage());
+                e.printStackTrace();
                 pressEnterToContinue();
             }
         }
@@ -86,9 +82,9 @@ public class ClientApplication {
         System.out.println("\n" + "═".repeat(70));
         System.out.println("  ____              _    _                ____            _                 ");
         System.out.println(" | __ )  ___   ___ | | _(_)_ __   __ _  / ___| _   _ ___| |_ ___ _ __ ___  ");
-        System.out.println(" |  _ \\ / _ \\ / _ \\| |/ / | '_ \\ / _` | \\___ \\| | | / __| __/ _ \\ '_ ` _ \\ ");
-        System.out.println(" | |_) | (_) | (_) |   <| | | | | (_| |  ___) | |_| \\__ \\ ||  __/ | | | | |");
-        System.out.println(" |____/ \\___/ \\___/|_|\\_\\_|_| |_|\\__, | |____/ \\__, |___/\\__\\___|_| |_| |_|");
+        System.out.println(" |  _ \ / _ \ / _ \| |/ / | '_ \ / _` | \___ \| | | / __| __/ _ \ '_ ` _ \ ");
+        System.out.println(" | |_) | (_) | (_) |   <| | | | | (_| |  ___) | |_| \__ \ ||  __/ | | | | |");
+        System.out.println(" |____/ \___/ \___/|_|\_\_|_| |_|\__, | |____/ \__, |___/\__\___|_| |_| |_|");
         System.out.println("                                  |___/         |___/                        ");
         System.out.println("═".repeat(70));
         System.out.println();
@@ -118,7 +114,7 @@ public class ClientApplication {
     }
 
     private void handleListSlots() throws IOException {
-        client.sendCommand("LIST");
+        client.sendCommand(new ListSlotsCommand());
     }
 
     private void handleMakeBooking() throws IOException {
@@ -131,15 +127,15 @@ public class ClientApplication {
         }
 
         try {
-            Long.parseLong(slotId);
-            client.sendCommand("RESERVE " + slotId);
+            long id = Long.parseLong(slotId);
+            client.sendCommand(new ReserveCommand(id));
         } catch (NumberFormatException e) {
             System.out.println("✗ Invalid slot ID. Please enter a number.");
         }
     }
 
     private void handleMyBookings() throws IOException {
-        client.sendCommand("MY");
+        client.sendCommand(new MyBookingsCommand());
     }
 
     private void handleCancelBooking() throws IOException {
@@ -152,13 +148,13 @@ public class ClientApplication {
         }
 
         try {
-            Long.parseLong(bookingId);
+            long id = Long.parseLong(bookingId);
 
             System.out.print("Are you sure you want to cancel this booking? (yes/no): ");
             String confirm = scanner.nextLine().trim().toLowerCase();
 
             if (confirm.equals("yes") || confirm.equals("y")) {
-                client.sendCommand("CANCEL " + bookingId);
+                client.sendCommand(new CancelCommand(id));
             } else {
                 System.out.println("ℹ Cancellation aborted.");
             }
@@ -168,12 +164,12 @@ public class ClientApplication {
     }
 
     private void handleHelp() throws IOException {
-        client.sendCommand("HELP");
+        System.out.println("Just follow the menu options! :)");
     }
 
     private void handleExit() throws IOException {
         System.out.println("\nDisconnecting from server...");
-        client.sendCommand("EXIT");
+        client.close();
     }
 
     private void pressEnterToContinue() {

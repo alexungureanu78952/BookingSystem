@@ -6,10 +6,6 @@ import io.quarkus.runtime.annotations.QuarkusMain;
 
 import java.util.logging.Logger;
 
-/**
- * Aplicația principală a serverului de booking
- * Pornește automat Quarkus și Socket Server-ul
- */
 @QuarkusMain
 public class ServerApplication implements QuarkusApplication {
 

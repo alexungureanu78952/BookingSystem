@@ -17,9 +17,6 @@ public class TimeSlotRepository implements PanacheRepository<TimeSlot> {
     @Inject
     EntityManager em;
 
-    /**
-     * Găsește toate sloturile disponibile folosind CriteriaBuilder
-     */
     public List<TimeSlot> findAvailable() {
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<TimeSlot> cq = cb.createQuery(TimeSlot.class);
@@ -32,9 +29,6 @@ public class TimeSlotRepository implements PanacheRepository<TimeSlot> {
         return em.createQuery(cq).getResultList();
     }
 
-    /**
-     * Găsește slot după ID (cu verificare)
-     */
     public TimeSlot findByIdRequired(Long id) throws Exception {
         return findByIdOptional(id)
                 .orElseThrow(() -> new Exception("TimeSlot not found with id: " + id));

@@ -21,13 +21,11 @@ public class TimeSlot extends PanacheEntity {
     public boolean available = true;
 
     @Version
-    public Long version; // Pentru optimistic locking (concurență!)
+    public Long version; 
 
-    // Constructor implicit necesar pentru JPA
     public TimeSlot() {
     }
 
-    // Constructor pentru crearea facilă de obiecte
     public TimeSlot(LocalDateTime startTime, LocalDateTime endTime, String description) {
         this.startTime = startTime;
         this.endTime = endTime;

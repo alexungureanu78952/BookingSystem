@@ -11,7 +11,7 @@ public class ServerResponse implements Serializable {
 
     private Status status;
     private String message;
-    private Object data; // Poate fi o listă de sloturi, bookings, etc.
+    private Object data; 
 
     public ServerResponse(Status status, String message) {
         this(status, message, null);

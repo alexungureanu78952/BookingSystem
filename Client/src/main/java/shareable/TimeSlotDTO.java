@@ -1,9 +1,5 @@
 package shareable;
 
-/**
- * Deoarece entitățile Booking și TimeSlot sunt în pachete diferite pe server și nu le putem muta ușor,
- * folosim DTO-uri (Data Transfer Objects) pentru a trimite datele către client.
- */
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
