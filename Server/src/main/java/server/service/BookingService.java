@@ -112,7 +112,6 @@ public class BookingService {
                         "  Active: %d\n" +
                         "  Cancelled: %d",
                 totalSlots, availableSlots, (totalSlots - availableSlots),
-                totalBookings, activeBookings, (totalBookings - activeBookings)
-        );
+                totalBookings, activeBookings, (totalBookings - activeBookings));
     }
 }

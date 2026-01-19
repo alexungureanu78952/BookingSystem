@@ -75,14 +75,14 @@ public class BookingGUI extends JFrame {
     private void updateTheme() {
         SwingUtilities.invokeLater(() -> {
             mainCardPanel.setBackground(themeManager.getBackgroundColor());
-            
+
             // Find main panel and update it
             for (Component comp : mainCardPanel.getComponents()) {
                 if (comp instanceof JPanel) {
                     updateComponentTheme((JPanel) comp);
                 }
             }
-            
+
             // Update tabbed pane specifically
             if (tabbedPane != null) {
                 tabbedPane.setBackground(themeManager.getPanelBackground());
@@ -94,7 +94,7 @@ public class BookingGUI extends JFrame {
                     }
                 }
             }
-            
+
             mainCardPanel.repaint();
         });
     }
