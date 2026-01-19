@@ -59,7 +59,7 @@ public class BookingClient {
         }
     }
 
-    public void sendCommand(Command command) throws IOException {
+    public synchronized void sendCommand(Command command) throws IOException {
         if (!connected) {
             throw new IOException("Not connected to server");
         }

@@ -17,11 +17,16 @@ public class BookingGUI extends JFrame {
     private JPanel slotsPanel;
     private JPanel bookingsPanel;
     private JLabel statusLabel;
-    private JLabel tokenLabel;
+    private JButton userButton;
     private boolean connected = false;
+    private boolean authenticated = false;
+    private UserDTO currentUser;
 
     private List<TimeSlotDTO> currentSlots = new ArrayList<>();
     private List<BookingDTO> currentBookings = new ArrayList<>();
+
+    private CardLayout mainCardLayout;
+    private JPanel mainCardPanel;
 
     public BookingGUI() {
         setTitle("Booking System");
@@ -32,8 +37,23 @@ public class BookingGUI extends JFrame {
 
         client = new BookingClient();
 
-        // Setup UI
-        setupUI();
+        // Setup card layout for auth/main views
+        mainCardLayout = new CardLayout();
+        mainCardPanel = new JPanel(mainCardLayout);
+        add(mainCardPanel);
+
+        // Create auth panel
+        AuthPanel authPanel = new AuthPanel(
+                loginCmd -> handleLogin(loginCmd),
+                registerCmd -> handleRegister(registerCmd));
+        mainCardPanel.add(authPanel, "AUTH");
+
+        // Create main panel
+        JPanel mainPanel = createMainPanel();
+        mainCardPanel.add(mainPanel, "MAIN");
+
+        // Show auth first
+        mainCardLayout.show(mainCardPanel, "AUTH");
 
         // Connect to server
         connectToServer();
@@ -41,8 +61,7 @@ public class BookingGUI extends JFrame {
         setVisible(true);
     }
 
-    private void setupUI() {
-        // Main panel
+    private JPanel createMainPanel() {
         JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
         mainPanel.setBackground(new Color(245, 245, 245));
         mainPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
@@ -70,7 +89,7 @@ public class BookingGUI extends JFrame {
         JPanel footerPanel = createFooterPanel();
         mainPanel.add(footerPanel, BorderLayout.SOUTH);
 
-        add(mainPanel);
+        return mainPanel;
     }
 
     private JPanel createHeaderPanel() {
@@ -79,18 +98,23 @@ public class BookingGUI extends JFrame {
         headerPanel.setBackground(new Color(63, 81, 181));
         headerPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        JLabel titleLabel = new JLabel("📅 Booking System");
+        JLabel titleLabel = new JLabel("Booking System");
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 28));
         titleLabel.setForeground(Color.WHITE);
 
         JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
         rightPanel.setBackground(new Color(63, 81, 181));
 
-        tokenLabel = new JLabel("Connecting...");
-        tokenLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        tokenLabel.setForeground(new Color(200, 200, 200));
+        userButton = new JButton("User");
+        userButton.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        userButton.setBackground(new Color(255, 255, 255));
+        userButton.setForeground(new Color(63, 81, 181));
+        userButton.setFocusPainted(false);
+        userButton.setBorderPainted(false);
+        userButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        userButton.addActionListener(e -> showUserProfile());
 
-        rightPanel.add(tokenLabel);
+        rightPanel.add(userButton);
 
         headerPanel.add(titleLabel, BorderLayout.WEST);
         headerPanel.add(rightPanel, BorderLayout.EAST);
@@ -103,7 +127,7 @@ public class BookingGUI extends JFrame {
         mainPanel.setBackground(new Color(245, 245, 245));
         mainPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
 
-        JButton refreshBtn = new ModernButton("🔄 Refresh", new Color(33, 150, 243), new Color(66, 165, 245));
+        JButton refreshBtn = new ModernButton("Refresh", new Color(33, 150, 243), new Color(66, 165, 245));
         refreshBtn.setPreferredSize(new Dimension(130, 40));
         refreshBtn.addActionListener(e -> loadAvailableSlots());
 
@@ -136,7 +160,7 @@ public class BookingGUI extends JFrame {
         mainPanel.setBackground(new Color(245, 245, 245));
         mainPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
 
-        JButton refreshBtn = new ModernButton("🔄 Refresh", new Color(33, 150, 243), new Color(66, 165, 245));
+        JButton refreshBtn = new ModernButton("Refresh", new Color(33, 150, 243), new Color(66, 165, 245));
         refreshBtn.setPreferredSize(new Dimension(130, 40));
         refreshBtn.addActionListener(e -> loadMyBookings());
 
@@ -188,21 +212,14 @@ public class BookingGUI extends JFrame {
         new Thread(() -> {
             try {
                 client.connect("localhost", 9090);
-
-                // Setup persistent callback for data
-                setupDataCallback();
-
                 connected = true;
                 SwingUtilities.invokeLater(() -> {
-                    statusLabel.setText("✓ Connected");
+                    statusLabel.setText("Connected");
                     statusLabel.setForeground(new Color(76, 175, 80));
-                    tokenLabel.setText("Token: " + client.getClientToken());
-                    loadAvailableSlots();
-                    loadMyBookings();
                 });
             } catch (IOException e) {
                 SwingUtilities.invokeLater(() -> {
-                    statusLabel.setText("✗ Connection failed: " + e.getMessage());
+                    statusLabel.setText("Connection failed");
                     statusLabel.setForeground(new Color(244, 67, 54));
                     JOptionPane.showMessageDialog(BookingGUI.this,
                             "Failed to connect to server: " + e.getMessage(),
@@ -213,7 +230,80 @@ public class BookingGUI extends JFrame {
         }).start();
     }
 
-    private void setupDataCallback() {
+    private void handleLogin(LoginCommand loginCmd) {
+        if (!connected) {
+            JOptionPane.showMessageDialog(this, "Not connected to server", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                client.setOnDataCallback(data -> {
+                    if (data instanceof UserDTO) {
+                        currentUser = (UserDTO) data;
+                        authenticated = true;
+                        SwingUtilities.invokeLater(() -> {
+                            userButton.setText(currentUser.username);
+                            mainCardLayout.show(mainCardPanel, "MAIN");
+                            setupDataCallbackForBookings();
+                            loadAvailableSlotsSequential();
+                        });
+                    }
+                });
+
+                client.setOnErrorCallback(msg -> {
+                    SwingUtilities.invokeLater(() -> {
+                        JOptionPane.showMessageDialog(this, msg, "Login Error", JOptionPane.ERROR_MESSAGE);
+                        setupDataCallbackForBookings();
+                    });
+                });
+
+                client.sendCommand(loginCmd);
+            } catch (IOException e) {
+                SwingUtilities.invokeLater(() -> {
+                    JOptionPane.showMessageDialog(this, "Error: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                    setupDataCallbackForBookings();
+                });
+            }
+        }).start();
+    }
+
+    private void handleRegister(RegisterCommand registerCmd) {
+        if (!connected) {
+            JOptionPane.showMessageDialog(this, "Not connected to server", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                client.setOnSuccessCallback(msg -> {
+                    SwingUtilities.invokeLater(() -> {
+                        JOptionPane.showMessageDialog(this, msg, "Success", JOptionPane.INFORMATION_MESSAGE);
+                        AuthPanel authPanel = (AuthPanel) mainCardPanel.getComponent(0);
+                        authPanel.clearFields();
+                        setupDataCallbackForBookings();
+                    });
+                });
+
+                client.setOnErrorCallback(msg -> {
+                    SwingUtilities.invokeLater(() -> {
+                        JOptionPane.showMessageDialog(this, msg, "Registration Error", JOptionPane.ERROR_MESSAGE);
+                        setupDataCallbackForBookings();
+                    });
+                });
+
+                client.setOnDataCallback(null);
+                client.sendCommand(registerCmd);
+            } catch (IOException e) {
+                SwingUtilities.invokeLater(() -> {
+                    JOptionPane.showMessageDialog(this, "Error: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                    setupDataCallbackForBookings();
+                });
+            }
+        }).start();
+    }
+
+    private void setupDataCallbackForBookings() {
         client.setOnDataCallback(data -> {
             if (data instanceof List<?>) {
                 List<?> list = (List<?>) data;
@@ -227,8 +317,6 @@ public class BookingGUI extends JFrame {
                         SwingUtilities.invokeLater(this::displayBookings);
                     }
                 } else {
-                    // Empty list - check which type we're expecting
-                    // We'll update both to be empty to handle all cases
                     SwingUtilities.invokeLater(() -> {
                         if (tabbedPane.getSelectedIndex() == 0) {
                             currentSlots = new ArrayList<>();
@@ -241,6 +329,23 @@ public class BookingGUI extends JFrame {
                 }
             }
         });
+    }
+
+    private void loadAvailableSlotsSequential() {
+        new Thread(() -> {
+            try {
+                client.sendCommand(new ListSlotsCommand());
+                Thread.sleep(500);
+                client.sendCommand(new MyBookingsCommand());
+            } catch (IOException e) {
+                SwingUtilities.invokeLater(() -> {
+                    JOptionPane.showMessageDialog(this, "Error loading data: " + e.getMessage(), "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                });
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }).start();
     }
 
     private void loadAvailableSlots() {
@@ -292,24 +397,33 @@ public class BookingGUI extends JFrame {
         if (confirm == JOptionPane.YES_OPTION) {
             new Thread(() -> {
                 try {
-                    // Set temporary callbacks for this operation
+                    client.setOnDataCallback(null);
+
                     Consumer<String> originalSuccessCallback = msg -> {
                         SwingUtilities.invokeLater(() -> {
                             JOptionPane.showMessageDialog(this, msg, "Success", JOptionPane.INFORMATION_MESSAGE);
-                            loadAvailableSlots();
-                            loadMyBookings();
                             tabbedPane.setSelectedIndex(1);
                         });
-                        // Restore data callback
-                        setupDataCallback();
+                        client.setOnSuccessCallback(null);
+                        client.setOnErrorCallback(null);
+                        setupDataCallbackForBookings();
+                        new Thread(() -> {
+                            try {
+                                Thread.sleep(200);
+                                loadAvailableSlots();
+                                Thread.sleep(300);
+                                loadMyBookings();
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
+                            }
+                        }).start();
                     };
 
                     Consumer<String> originalErrorCallback = msg -> {
+                        setupDataCallbackForBookings();
                         SwingUtilities.invokeLater(() -> {
                             JOptionPane.showMessageDialog(this, msg, "Error", JOptionPane.ERROR_MESSAGE);
                         });
-                        // Restore data callback
-                        setupDataCallback();
                     };
 
                     client.setOnSuccessCallback(originalSuccessCallback);
@@ -320,7 +434,7 @@ public class BookingGUI extends JFrame {
                         JOptionPane.showMessageDialog(this, "Error: " + e.getMessage(), "Error",
                                 JOptionPane.ERROR_MESSAGE);
                     });
-                    setupDataCallback();
+                    setupDataCallbackForBookings();
                 }
             }).start();
         }
@@ -375,23 +489,32 @@ public class BookingGUI extends JFrame {
         if (confirm == JOptionPane.YES_OPTION) {
             new Thread(() -> {
                 try {
-                    // Set temporary callbacks for this operation
+                    client.setOnDataCallback(null);
+
                     Consumer<String> originalSuccessCallback = msg -> {
                         SwingUtilities.invokeLater(() -> {
                             JOptionPane.showMessageDialog(this, msg, "Success", JOptionPane.INFORMATION_MESSAGE);
-                            loadAvailableSlots();
-                            loadMyBookings();
                         });
-                        // Restore data callback
-                        setupDataCallback();
+                        client.setOnSuccessCallback(null);
+                        client.setOnErrorCallback(null);
+                        setupDataCallbackForBookings();
+                        new Thread(() -> {
+                            try {
+                                Thread.sleep(200);
+                                loadAvailableSlots();
+                                Thread.sleep(300);
+                                loadMyBookings();
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
+                            }
+                        }).start();
                     };
 
                     Consumer<String> originalErrorCallback = msg -> {
+                        setupDataCallbackForBookings();
                         SwingUtilities.invokeLater(() -> {
                             JOptionPane.showMessageDialog(this, msg, "Error", JOptionPane.ERROR_MESSAGE);
                         });
-                        // Restore data callback
-                        setupDataCallback();
                     };
 
                     client.setOnSuccessCallback(originalSuccessCallback);
@@ -402,10 +525,39 @@ public class BookingGUI extends JFrame {
                         JOptionPane.showMessageDialog(this, "Error: " + e.getMessage(), "Error",
                                 JOptionPane.ERROR_MESSAGE);
                     });
-                    setupDataCallback();
+                    setupDataCallbackForBookings();
                 }
             }).start();
         }
+    }
+
+    private void showUserProfile() {
+        if (currentUser == null)
+            return;
+
+        JDialog profileDialog = new JDialog(this, "User Profile", true);
+        profileDialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        profileDialog.setSize(350, 400);
+        profileDialog.setLocationRelativeTo(this);
+
+        UserProfilePanel profilePanel = new UserProfilePanel(currentUser, v -> {
+            profileDialog.dispose();
+            logout();
+        });
+
+        profileDialog.add(profilePanel);
+        profileDialog.setVisible(true);
+    }
+
+    private void logout() {
+        authenticated = false;
+        currentUser = null;
+        currentSlots.clear();
+        currentBookings.clear();
+        userButton.setText("User");
+        mainCardLayout.show(mainCardPanel, "AUTH");
+        AuthPanel authPanel = (AuthPanel) mainCardPanel.getComponent(0);
+        authPanel.clearFields();
     }
 
     private void exit() {

@@ -31,7 +31,7 @@ public class TimeSlotCard extends JPanel {
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
         titleLabel.setForeground(new Color(33, 33, 33));
 
-        String timeText = slot.startTime.format(DATE_FORMATTER) + " | " +
+        String timeText = slot.startTime.format(DATE_FORMATTER) + " to " +
                 slot.startTime.format(TIME_FORMATTER) + " - " +
                 slot.endTime.format(TIME_FORMATTER);
         JLabel timeLabel = new JLabel(timeText);

@@ -31,8 +31,7 @@ public class BookingCard extends JPanel {
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
         titleLabel.setForeground(new Color(33, 33, 33));
 
-        String timeText = booking.slotTime.format(DATE_FORMATTER) + " | " +
-                booking.slotTime.format(TIME_FORMATTER);
+        String timeText = booking.slotTime.format(DATE_FORMATTER);
         JLabel timeLabel = new JLabel(timeText);
         timeLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         timeLabel.setForeground(new Color(117, 117, 117));
