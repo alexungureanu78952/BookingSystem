@@ -17,7 +17,7 @@ public class BookingGUI extends JFrame {
     private JPanel slotsPanel;
     private JPanel bookingsPanel;
     private JLabel statusLabel;
-    private JButton userButton;
+    private JButton menuButton;
     private boolean connected = false;
     private boolean authenticated = false;
     private UserDTO currentUser;
@@ -27,8 +27,11 @@ public class BookingGUI extends JFrame {
 
     private CardLayout mainCardLayout;
     private JPanel mainCardPanel;
+    private ThemeManager themeManager;
 
     public BookingGUI() {
+        themeManager = ThemeManager.getInstance();
+        
         setTitle("Booking System");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1000, 700);
@@ -54,6 +57,9 @@ public class BookingGUI extends JFrame {
 
         // Show auth first
         mainCardLayout.show(mainCardPanel, "AUTH");
+
+        // Listen to theme changes
+        themeManager.addThemeChangeListener(isDark -> updateTheme());
 
         // Connect to server
         connectToServer();
