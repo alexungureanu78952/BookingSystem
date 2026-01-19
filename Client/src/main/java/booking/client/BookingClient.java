@@ -19,7 +19,7 @@ public class BookingClient {
     private ObjectOutputStream out;
     private String clientToken;
     private boolean connected = false;
-    
+
     // Callbacks for GUI
     private Consumer<String> onSuccessCallback;
     private Consumer<String> onErrorCallback;
@@ -29,14 +29,15 @@ public class BookingClient {
     public void connect(String host, int port) throws IOException {
         try {
             socket = new Socket(host, port);
-            
+
             in = new ObjectInputStream(socket.getInputStream());
             out = new ObjectOutputStream(socket.getOutputStream());
             out.flush();
 
             try {
                 ServerResponse response = (ServerResponse) in.readObject();
-                if (response.getStatus() == ServerResponse.Status.INFO && response.getMessage().startsWith("CONNECTED|")) {
+                if (response.getStatus() == ServerResponse.Status.INFO
+                        && response.getMessage().startsWith("CONNECTED|")) {
                     clientToken = response.getMessage().split("\\|")[1];
                     connected = true;
 
@@ -65,14 +66,14 @@ public class BookingClient {
 
         out.writeObject(command);
         out.flush();
-        
+
         handleResponse();
     }
 
     private void handleResponse() throws IOException {
         try {
             ServerResponse response = (ServerResponse) in.readObject();
-            
+
             switch (response.getStatus()) {
                 case SUCCESS:
                     String message = "\n✓ " + response.getMessage();
@@ -87,7 +88,7 @@ public class BookingClient {
                         }
                     }
                     break;
-                    
+
                 case ERROR:
                     String errorMsg = "✗ Error: " + response.getMessage();
                     System.out.println("\n" + errorMsg);
@@ -95,11 +96,11 @@ public class BookingClient {
                         onErrorCallback.accept(response.getMessage());
                     }
                     break;
-                    
+
                 case INFO:
                     System.out.println("ℹ " + response.getMessage());
                     break;
-                    
+
                 case DONE:
                     System.out.println("\n" + response.getMessage());
                     connected = false;
@@ -108,12 +109,12 @@ public class BookingClient {
                     }
                     break;
             }
-            
+
         } catch (ClassNotFoundException e) {
             System.err.println("Error decoding response: " + e.getMessage());
         }
     }
-    
+
     @SuppressWarnings("unchecked")
     private void printData(Object data) {
         if (data instanceof List<?>) {
@@ -122,9 +123,9 @@ public class BookingClient {
                 System.out.println("No items found.");
                 return;
             }
-            
+
             Object first = list.get(0);
-            
+
             if (first instanceof TimeSlotDTO) {
                 List<TimeSlotDTO> slots = (List<TimeSlotDTO>) list;
                 System.out.println("\n" + "=".repeat(70));
@@ -132,16 +133,17 @@ public class BookingClient {
                 System.out.println("─".repeat(70));
                 for (TimeSlotDTO slot : slots) {
                     System.out.println(String.format("%-5d | %-20s | %-15s | %-15s",
-                            slot.id, slot.description, 
-                            slot.startTime.format(DATE_FORMATTER), 
+                            slot.id, slot.description,
+                            slot.startTime.format(DATE_FORMATTER),
                             slot.endTime.format(TIME_FORMATTER)));
                 }
                 System.out.println("=".repeat(70));
-                
+
             } else if (first instanceof BookingDTO) {
                 List<BookingDTO> bookings = (List<BookingDTO>) list;
                 System.out.println("\n" + "=".repeat(85));
-                System.out.println(String.format("%-5s | %-8s | %-20s | %-20s | %-15s", "ID", "Slot ID", "Slot Description", "Booked At", "Slot Time"));
+                System.out.println(String.format("%-5s | %-8s | %-20s | %-20s | %-15s", "ID", "Slot ID",
+                        "Slot Description", "Booked At", "Slot Time"));
                 System.out.println("─".repeat(85));
                 for (BookingDTO b : bookings) {
                     System.out.println(String.format("%-5d | %-8d | %-20s | %-20s | %-15s",
@@ -171,8 +173,10 @@ public class BookingClient {
                 }
             }
             connected = false;
-            if (in != null) in.close();
-            if (out != null) out.close();
+            if (in != null)
+                in.close();
+            if (out != null)
+                out.close();
             if (socket != null && !socket.isClosed()) {
                 socket.close();
             }
