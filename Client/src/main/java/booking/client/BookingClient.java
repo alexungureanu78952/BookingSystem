@@ -7,6 +7,7 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class BookingClient {
 
@@ -18,6 +19,12 @@ public class BookingClient {
     private ObjectOutputStream out;
     private String clientToken;
     private boolean connected = false;
+    
+    // Callbacks for GUI
+    private Consumer<String> onSuccessCallback;
+    private Consumer<String> onErrorCallback;
+    private Consumer<Object> onDataCallback;
+    private Runnable onDisconnectCallback;
 
     public void connect(String host, int port) throws IOException {
         try {
@@ -68,14 +75,25 @@ public class BookingClient {
             
             switch (response.getStatus()) {
                 case SUCCESS:
-                    System.out.println("\n✓ " + response.getMessage());
+                    String message = "\n✓ " + response.getMessage();
+                    System.out.println(message);
+                    if (onSuccessCallback != null) {
+                        onSuccessCallback.accept(response.getMessage());
+                    }
                     if (response.getData() != null) {
                         printData(response.getData());
+                        if (onDataCallback != null) {
+                            onDataCallback.accept(response.getData());
+                        }
                     }
                     break;
                     
                 case ERROR:
-                    System.out.println("\n✗ Error: " + response.getMessage());
+                    String errorMsg = "✗ Error: " + response.getMessage();
+                    System.out.println("\n" + errorMsg);
+                    if (onErrorCallback != null) {
+                        onErrorCallback.accept(response.getMessage());
+                    }
                     break;
                     
                 case INFO:
@@ -85,6 +103,9 @@ public class BookingClient {
                 case DONE:
                     System.out.println("\n" + response.getMessage());
                     connected = false;
+                    if (onDisconnectCallback != null) {
+                        onDisconnectCallback.run();
+                    }
                     break;
             }
             
@@ -162,5 +183,22 @@ public class BookingClient {
 
     public String getClientToken() {
         return clientToken;
+    }
+
+    // Callback setters for GUI
+    public void setOnSuccessCallback(Consumer<String> callback) {
+        this.onSuccessCallback = callback;
+    }
+
+    public void setOnErrorCallback(Consumer<String> callback) {
+        this.onErrorCallback = callback;
+    }
+
+    public void setOnDataCallback(Consumer<Object> callback) {
+        this.onDataCallback = callback;
+    }
+
+    public void setOnDisconnectCallback(Runnable callback) {
+        this.onDisconnectCallback = callback;
     }
 }

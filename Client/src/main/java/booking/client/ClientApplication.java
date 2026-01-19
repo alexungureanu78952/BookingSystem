@@ -1,5 +1,6 @@
 package booking.client;
 
+import booking.client.ui.BookingGUI;
 import shareable.*;
 import java.io.IOException;
 import java.util.Scanner;
@@ -18,8 +19,15 @@ public class ClientApplication {
     }
 
     public static void main(String[] args) {
-        ClientApplication app = new ClientApplication();
-        app.run();
+        // Check if GUI mode is requested
+        if (args.length > 0 && args[0].equalsIgnoreCase("--gui")) {
+            // Launch GUI mode
+            javax.swing.SwingUtilities.invokeLater(() -> new BookingGUI());
+        } else {
+            // Launch CLI mode
+            ClientApplication app = new ClientApplication();
+            app.run();
+        }
     }
 
     public void run() {
