@@ -36,6 +36,7 @@ public class AuthService {
         return user;
     }
 
+    @Transactional
     public User login(String username, String password) throws Exception {
         User user = userRepository.findByUsername(username);
 
