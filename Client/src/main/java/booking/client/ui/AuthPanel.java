@@ -9,6 +9,9 @@ import java.awt.*;
 import java.util.function.Consumer;
 
 public class AuthPanel extends JPanel {
+    private static final int FIELD_WIDTH = 520;
+    private static final int FIELD_HEIGHT = 40;
+
     private JTextField usernameField;
     private JPasswordField passwordField;
     private JTextField emailField;
@@ -19,8 +22,8 @@ public class AuthPanel extends JPanel {
     private JPanel formPanel;
     private boolean isLoginMode = true;
 
-    private Consumer<LoginCommand> onLogin;
-    private Consumer<RegisterCommand> onRegister;
+    private final Consumer<LoginCommand> onLogin;
+    private final Consumer<RegisterCommand> onRegister;
 
     private final ThemeManager themeManager = ThemeManager.getInstance();
 
@@ -31,20 +34,24 @@ public class AuthPanel extends JPanel {
         setLayout(new BorderLayout());
         setBackground(themeManager.getBackgroundColor());
 
-        // Header
+        buildHeader();
+        buildFormContainer();
+
+        themeManager.addThemeChangeListener(isDark -> applyTheme());
+        applyTheme();
+    }
+
+    private void buildHeader() {
         headerPanel = new JPanel();
         headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.Y_AXIS));
-        headerPanel.setBackground(themeManager.getHeaderBackground());
         headerPanel.setBorder(new EmptyBorder(40, 20, 40, 20));
 
         titleLabel = new JLabel("Welcome to Booking System");
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 28));
-        titleLabel.setForeground(themeManager.getTextColor());
         titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         subtitleLabel = new JLabel("Sign in to your account");
         subtitleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        subtitleLabel.setForeground(themeManager.getTextSecondaryColor());
         subtitleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         headerPanel.add(titleLabel);
@@ -52,103 +59,53 @@ public class AuthPanel extends JPanel {
         headerPanel.add(subtitleLabel);
 
         add(headerPanel, BorderLayout.NORTH);
+    }
 
-        // Form Panel
+    private void buildFormContainer() {
         formPanel = new JPanel();
         formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
-        formPanel.setBackground(themeManager.getBackgroundColor());
         formPanel.setBorder(new EmptyBorder(40, 30, 40, 30));
 
         createLoginForm();
 
         JScrollPane scrollPane = new JScrollPane(formPanel);
         scrollPane.setBorder(null);
-        scrollPane.setBackground(themeManager.getBackgroundColor());
         scrollPane.getViewport().setBackground(themeManager.getBackgroundColor());
-
         add(scrollPane, BorderLayout.CENTER);
-
-        themeManager.addThemeChangeListener(isDark -> applyTheme());
-        applyTheme();
     }
 
     private void createLoginForm() {
         formPanel.removeAll();
         isLoginMode = true;
+        subtitleLabel.setText("Sign in to your account");
 
         usernameField = new JTextField();
-        usernameField.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        usernameField.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(themeManager.getBorderColor(), 1),
-                BorderFactory.createEmptyBorder(10, 10, 10, 10)));
-        usernameField.setMaximumSize(new Dimension(500, 40));
-        usernameField.setBackground(themeManager.getPanelBackground());
-        usernameField.setForeground(themeManager.getTextColor());
-
         passwordField = new JPasswordField();
-        passwordField.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        passwordField.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(themeManager.getBorderColor(), 1),
-                BorderFactory.createEmptyBorder(10, 10, 10, 10)));
-        passwordField.setMaximumSize(new Dimension(500, 40));
-        passwordField.setBackground(themeManager.getPanelBackground());
-        passwordField.setForeground(themeManager.getTextColor());
+        styleField(usernameField);
+        styleField(passwordField);
 
-        JLabel usernameLabel = new JLabel("Username:");
-        usernameLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        usernameLabel.setForeground(themeManager.getTextColor());
-
-        JLabel passwordLabel = new JLabel("Password:");
-        passwordLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        passwordLabel.setForeground(themeManager.getTextColor());
+        JLabel usernameLabel = buildLabel("Username:");
+        JLabel passwordLabel = buildLabel("Password:");
 
         formPanel.add(usernameLabel);
         formPanel.add(Box.createVerticalStrut(8));
         formPanel.add(usernameField);
-        formPanel.add(Box.createVerticalStrut(20));
+        formPanel.add(Box.createVerticalStrut(15));
         formPanel.add(passwordLabel);
         formPanel.add(Box.createVerticalStrut(8));
         formPanel.add(passwordField);
         formPanel.add(Box.createVerticalStrut(30));
 
-        // Buttons
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
-        buttonPanel.setBackground(themeManager.getBackgroundColor());
-        buttonPanel.setMaximumSize(new Dimension(500, 45));
-
-        ModernButton loginBtn = new ModernButton("Sign In", themeManager.getAccentGreen(), new Color(100, 195, 100));
-        loginBtn.setMaximumSize(new Dimension(500, 45));
+        JPanel buttonPanel = buildButtonPanel();
+        ModernButton loginBtn = new ModernButton("Login", themeManager.getAccentGreen(), new Color(100, 195, 100));
+        loginBtn.setMaximumSize(new Dimension(FIELD_WIDTH, 45));
         loginBtn.addActionListener(e -> performLogin());
-
         buttonPanel.add(loginBtn);
         formPanel.add(buttonPanel);
         formPanel.add(Box.createVerticalStrut(20));
 
-        // Toggle to register
-        JPanel togglePanel = new JPanel();
-        togglePanel.setBackground(themeManager.getBackgroundColor());
-        togglePanel.setLayout(new FlowLayout(FlowLayout.CENTER));
-
-        JLabel questionLabel = new JLabel("Don't have an account? ");
-        questionLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        questionLabel.setForeground(themeManager.getTextSecondaryColor());
-
-        JButton registerLink = new JButton("Create one");
-        registerLink.setForeground(themeManager.getAccentGreen());
-        registerLink.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        registerLink.setOpaque(false);
-        registerLink.setContentAreaFilled(false);
-        registerLink.setBorderPainted(false);
-        registerLink.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        registerLink.addActionListener(e -> switchToRegister());
-
-        togglePanel.add(questionLabel);
-        togglePanel.add(registerLink);
-        togglePanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-
+        JPanel togglePanel = buildTogglePanel("Don't have an account? ", "Create one", this::switchToRegister);
         formPanel.add(togglePanel);
-        formPanel.add(Box.createVerticalGlue());
 
         formPanel.revalidate();
         formPanel.repaint();
@@ -157,58 +114,21 @@ public class AuthPanel extends JPanel {
     private void createRegisterForm() {
         formPanel.removeAll();
         isLoginMode = false;
+        subtitleLabel.setText("Create your account");
 
         usernameField = new JTextField();
-        usernameField.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        usernameField.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(themeManager.getBorderColor(), 1),
-                BorderFactory.createEmptyBorder(10, 10, 10, 10)));
-        usernameField.setMaximumSize(new Dimension(500, 40));
-        usernameField.setBackground(themeManager.getPanelBackground());
-        usernameField.setForeground(themeManager.getTextColor());
-
         emailField = new JTextField();
-        emailField.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        emailField.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(themeManager.getBorderColor(), 1),
-                BorderFactory.createEmptyBorder(10, 10, 10, 10)));
-        emailField.setMaximumSize(new Dimension(500, 40));
-        emailField.setBackground(themeManager.getPanelBackground());
-        emailField.setForeground(themeManager.getTextColor());
-
         fullNameField = new JTextField();
-        fullNameField.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        fullNameField.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(themeManager.getBorderColor(), 1),
-                BorderFactory.createEmptyBorder(10, 10, 10, 10)));
-        fullNameField.setMaximumSize(new Dimension(500, 40));
-        fullNameField.setBackground(themeManager.getPanelBackground());
-        fullNameField.setForeground(themeManager.getTextColor());
-
         passwordField = new JPasswordField();
-        passwordField.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        passwordField.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(themeManager.getBorderColor(), 1),
-                BorderFactory.createEmptyBorder(10, 10, 10, 10)));
-        passwordField.setMaximumSize(new Dimension(500, 40));
-        passwordField.setBackground(themeManager.getPanelBackground());
-        passwordField.setForeground(themeManager.getTextColor());
+        styleField(usernameField);
+        styleField(emailField);
+        styleField(fullNameField);
+        styleField(passwordField);
 
-        JLabel usernameLabel = new JLabel("Username:");
-        usernameLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        usernameLabel.setForeground(themeManager.getTextColor());
-
-        JLabel emailLabel = new JLabel("Email:");
-        emailLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        emailLabel.setForeground(themeManager.getTextColor());
-
-        JLabel fullNameLabel = new JLabel("Full Name:");
-        fullNameLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        fullNameLabel.setForeground(themeManager.getTextColor());
-
-        JLabel passwordLabel = new JLabel("Password:");
-        passwordLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        passwordLabel.setForeground(themeManager.getTextColor());
+        JLabel usernameLabel = buildLabel("Username:");
+        JLabel emailLabel = buildLabel("Email:");
+        JLabel fullNameLabel = buildLabel("Full Name:");
+        JLabel passwordLabel = buildLabel("Password:");
 
         formPanel.add(usernameLabel);
         formPanel.add(Box.createVerticalStrut(8));
@@ -227,48 +147,73 @@ public class AuthPanel extends JPanel {
         formPanel.add(passwordField);
         formPanel.add(Box.createVerticalStrut(30));
 
-        // Buttons
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
-        buttonPanel.setBackground(themeManager.getBackgroundColor());
-        buttonPanel.setMaximumSize(new Dimension(500, 45));
-
+        JPanel buttonPanel = buildButtonPanel();
         ModernButton registerBtn = new ModernButton("Create Account", themeManager.getAccentGreen(),
                 new Color(100, 195, 100));
-        registerBtn.setMaximumSize(new Dimension(500, 45));
+        registerBtn.setMaximumSize(new Dimension(FIELD_WIDTH, 45));
         registerBtn.addActionListener(e -> performRegister());
-
         buttonPanel.add(registerBtn);
         formPanel.add(buttonPanel);
         formPanel.add(Box.createVerticalStrut(20));
 
-        // Toggle to login
-        JPanel togglePanel = new JPanel();
-        togglePanel.setBackground(themeManager.getBackgroundColor());
-        togglePanel.setLayout(new FlowLayout(FlowLayout.CENTER));
-
-        JLabel questionLabel = new JLabel("Already have an account? ");
-        questionLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        questionLabel.setForeground(themeManager.getTextSecondaryColor());
-
-        JButton loginLink = new JButton("Sign in");
-        loginLink.setForeground(themeManager.getAccentGreen());
-        loginLink.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        loginLink.setOpaque(false);
-        loginLink.setContentAreaFilled(false);
-        loginLink.setBorderPainted(false);
-        loginLink.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        loginLink.addActionListener(e -> switchToLogin());
-
-        togglePanel.add(questionLabel);
-        togglePanel.add(loginLink);
-        togglePanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-
+        JPanel togglePanel = buildTogglePanel("Already have an account? ", "Sign in", this::switchToLogin);
         formPanel.add(togglePanel);
-        formPanel.add(Box.createVerticalGlue());
 
         formPanel.revalidate();
         formPanel.repaint();
+    }
+
+    private JLabel buildLabel(String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        label.setAlignmentX(Component.CENTER_ALIGNMENT);
+        label.setForeground(themeManager.getTextColor());
+        return label;
+    }
+
+    private JPanel buildButtonPanel() {
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
+        buttonPanel.setMaximumSize(new Dimension(FIELD_WIDTH, 45));
+        buttonPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        buttonPanel.setOpaque(false);
+        return buttonPanel;
+    }
+
+    private JPanel buildTogglePanel(String question, String actionText, Runnable action) {
+        JPanel togglePanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        togglePanel.setMaximumSize(new Dimension(FIELD_WIDTH, 40));
+        togglePanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        togglePanel.setOpaque(false);
+
+        JLabel questionLabel = new JLabel(question);
+        questionLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        questionLabel.setForeground(themeManager.getTextSecondaryColor());
+
+        JButton link = new JButton(actionText);
+        link.setForeground(themeManager.getAccentGreen());
+        link.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        link.setOpaque(false);
+        link.setContentAreaFilled(false);
+        link.setBorderPainted(false);
+        link.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        link.addActionListener(e -> action.run());
+
+        togglePanel.add(questionLabel);
+        togglePanel.add(link);
+        return togglePanel;
+    }
+
+    private void styleField(JTextField field) {
+        field.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        field.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(themeManager.getBorderColor(), 1),
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)));
+        field.setMaximumSize(new Dimension(FIELD_WIDTH, FIELD_HEIGHT));
+        field.setAlignmentX(Component.CENTER_ALIGNMENT);
+        field.setBackground(themeManager.getPanelBackground());
+        field.setForeground(themeManager.getTextColor());
+        field.setCaretColor(themeManager.getTextColor());
     }
 
     private void switchToLogin() {
@@ -308,33 +253,57 @@ public class AuthPanel extends JPanel {
         }
 
         onRegister.accept(new RegisterCommand(username, password, email, fullName));
+        clearFields();
     }
 
-    public void clearFields() {
-        if (usernameField != null)
+    public void resetToLogin() {
+        createLoginForm();
+        clearFields();
+    }
+
+    private void clearFields() {
+        if (usernameField != null) {
             usernameField.setText("");
-        if (passwordField != null)
+        }
+        if (passwordField != null) {
             passwordField.setText("");
-        if (emailField != null)
+        }
+        if (emailField != null) {
             emailField.setText("");
-        if (fullNameField != null)
+        }
+        if (fullNameField != null) {
             fullNameField.setText("");
+        }
     }
 
     private void applyTheme() {
         setBackground(themeManager.getBackgroundColor());
-        if (headerPanel != null) {
-            headerPanel.setBackground(themeManager.getHeaderBackground());
+        headerPanel.setBackground(themeManager.getHeaderBackground());
+        formPanel.setBackground(themeManager.getBackgroundColor());
+        titleLabel.setForeground(themeManager.getTextColor());
+        subtitleLabel.setForeground(themeManager.getTextSecondaryColor());
+
+        for (Component component : formPanel.getComponents()) {
+            if (component instanceof JLabel) {
+                component.setForeground(themeManager.getTextColor());
+            }
+            if (component instanceof JPanel) {
+                component.setBackground(themeManager.getBackgroundColor());
+            }
         }
-        if (titleLabel != null) {
-            titleLabel.setForeground(themeManager.getTextColor());
+        if (usernameField != null) {
+            styleField(usernameField);
         }
-        if (subtitleLabel != null) {
-            subtitleLabel.setForeground(themeManager.getTextSecondaryColor());
+        if (emailField != null) {
+            styleField(emailField);
         }
-        if (formPanel != null) {
-            formPanel.setBackground(themeManager.getBackgroundColor());
+        if (fullNameField != null) {
+            styleField(fullNameField);
         }
+        if (passwordField != null) {
+            styleField(passwordField);
+        }
+
         revalidate();
         repaint();
     }

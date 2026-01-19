@@ -2,6 +2,8 @@ package server.entity;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntity;
 import jakarta.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "users")
@@ -18,6 +20,9 @@ public class User extends PanacheEntity {
 
     @Column(name = "full_name", nullable = false, length = 255)
     public String fullName;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    public List<Booking> bookings = new ArrayList<>();
 
     public User() {
     }

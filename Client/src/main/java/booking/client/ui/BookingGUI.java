@@ -16,7 +16,6 @@ public class BookingGUI extends JFrame {
     private JTabbedPane tabbedPane;
     private JPanel slotsPanel;
     private JPanel bookingsPanel;
-    private JLabel statusLabel;
     private JButton menuButton;
     private boolean connected = false;
     private boolean authenticated = false;
@@ -76,14 +75,27 @@ public class BookingGUI extends JFrame {
     private void updateTheme() {
         SwingUtilities.invokeLater(() -> {
             mainCardPanel.setBackground(themeManager.getBackgroundColor());
-            mainCardPanel.repaint();
-
+            
             // Find main panel and update it
             for (Component comp : mainCardPanel.getComponents()) {
                 if (comp instanceof JPanel) {
                     updateComponentTheme((JPanel) comp);
                 }
             }
+            
+            // Update tabbed pane specifically
+            if (tabbedPane != null) {
+                tabbedPane.setBackground(themeManager.getPanelBackground());
+                tabbedPane.setForeground(themeManager.getTextColor());
+                for (int i = 0; i < tabbedPane.getComponentCount(); i++) {
+                    Component comp = tabbedPane.getComponentAt(i);
+                    if (comp instanceof JPanel) {
+                        updateComponentTheme((JPanel) comp);
+                    }
+                }
+            }
+            
+            mainCardPanel.repaint();
         });
     }
 
@@ -94,6 +106,13 @@ public class BookingGUI extends JFrame {
         for (Component comp : panel.getComponents()) {
             if (comp instanceof JPanel) {
                 updateComponentTheme((JPanel) comp);
+            } else if (comp instanceof JScrollPane) {
+                JScrollPane scroll = (JScrollPane) comp;
+                scroll.setBackground(themeManager.getBackgroundColor());
+                scroll.getViewport().setBackground(themeManager.getBackgroundColor());
+                if (scroll.getViewport().getView() instanceof JPanel) {
+                    updateComponentTheme((JPanel) scroll.getViewport().getView());
+                }
             } else if (comp instanceof JLabel) {
                 ((JLabel) comp).setForeground(themeManager.getTextColor());
             }
@@ -236,16 +255,11 @@ public class BookingGUI extends JFrame {
         footerPanel.setBackground(themeManager.getBackgroundColor());
         footerPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, themeManager.getBorderColor()));
 
-        statusLabel = new JLabel("Disconnected");
-        statusLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        statusLabel.setForeground(new Color(244, 67, 54));
-
         JButton exitBtn = new ModernButton("Exit", new Color(244, 67, 54),
                 new Color(245, 87, 74));
         exitBtn.setPreferredSize(new Dimension(100, 35));
         exitBtn.addActionListener(e -> exit());
 
-        footerPanel.add(statusLabel, BorderLayout.WEST);
         footerPanel.add(exitBtn, BorderLayout.EAST);
 
         return footerPanel;
@@ -280,14 +294,8 @@ public class BookingGUI extends JFrame {
             try {
                 client.connect("localhost", 9090);
                 connected = true;
-                SwingUtilities.invokeLater(() -> {
-                    statusLabel.setText("Connected");
-                    statusLabel.setForeground(themeManager.getAccentGreen());
-                });
             } catch (IOException e) {
                 SwingUtilities.invokeLater(() -> {
-                    statusLabel.setText("Connection failed");
-                    statusLabel.setForeground(new Color(244, 67, 54));
                     JOptionPane.showMessageDialog(BookingGUI.this,
                             "Failed to connect to server: " + e.getMessage(),
                             "Connection Error",
@@ -313,8 +321,14 @@ public class BookingGUI extends JFrame {
                             menuButton.setText(currentUser.username);
                             mainCardLayout.show(mainCardPanel, "MAIN");
                             setupDataCallbackForBookings();
-                            loadAvailableSlotsSequential();
                         });
+                        // Load bookings after showing main UI
+                        try {
+                            Thread.sleep(200);
+                            loadAvailableSlotsSequential();
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
                     }
                 });
 
@@ -347,7 +361,7 @@ public class BookingGUI extends JFrame {
                     SwingUtilities.invokeLater(() -> {
                         JOptionPane.showMessageDialog(this, msg, "Success", JOptionPane.INFORMATION_MESSAGE);
                         AuthPanel authPanel = (AuthPanel) mainCardPanel.getComponent(0);
-                        authPanel.clearFields();
+                        authPanel.resetToLogin();
                         setupDataCallbackForBookings();
                     });
                 });
@@ -405,11 +419,11 @@ public class BookingGUI extends JFrame {
     private void loadAvailableSlotsSequential() {
         new Thread(() -> {
             try {
-                lastRequest = RequestedDataType.SLOTS;
-                client.sendCommand(new ListSlotsCommand());
-                Thread.sleep(500);
                 lastRequest = RequestedDataType.BOOKINGS;
                 client.sendCommand(new MyBookingsCommand());
+                Thread.sleep(300);
+                lastRequest = RequestedDataType.SLOTS;
+                client.sendCommand(new ListSlotsCommand());
             } catch (IOException e) {
                 SwingUtilities.invokeLater(() -> {
                     JOptionPane.showMessageDialog(this, "Error loading data: " + e.getMessage(), "Error",
@@ -638,7 +652,7 @@ public class BookingGUI extends JFrame {
         menuButton.setText("Menu");
         mainCardLayout.show(mainCardPanel, "AUTH");
         AuthPanel authPanel = (AuthPanel) mainCardPanel.getComponent(0);
-        authPanel.clearFields();
+        authPanel.resetToLogin();
     }
 
     private void exit() {

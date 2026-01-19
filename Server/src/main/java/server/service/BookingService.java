@@ -21,6 +21,9 @@ public class BookingService {
     @Inject
     BookingRepository bookingRepository;
 
+    @Inject
+    UserRepository userRepository;
+
     @Transactional
     public List<TimeSlot> getAvailableSlots() {
         LOG.info("Fetching available time slots");
@@ -28,7 +31,7 @@ public class BookingService {
     }
 
     @Transactional
-    public synchronized Booking createBooking(String clientToken, Long slotId)
+    public synchronized Booking createBooking(String clientToken, Long slotId, Long userId)
             throws BookingException {
 
         LOG.info(String.format("Client %s attempting to book slot %d", clientToken, slotId));
@@ -46,7 +49,10 @@ public class BookingService {
             throw new BookingException("This time slot is already booked");
         }
 
-        Booking booking = new Booking(clientToken, slot);
+        User user = userRepository.findByIdOptional(userId)
+                .orElseThrow(() -> new BookingException("User not found with ID: " + userId));
+
+        Booking booking = new Booking(clientToken, slot, user);
         bookingRepository.persist(booking);
 
         slot.available = false;

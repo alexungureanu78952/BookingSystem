@@ -120,7 +120,10 @@ public class ClientHandler implements Runnable {
 
     private void handleReserve(ReserveCommand cmd) throws IOException {
         try {
-            Booking booking = bookingService.createBooking(clientToken, cmd.getSlotId());
+            if (userId == null) {
+                throw new BookingException("Not authenticated");
+            }
+            Booking booking = bookingService.createBooking(clientToken, cmd.getSlotId(), userId);
             BookingDTO dto = new BookingDTO(
                     booking.id,
                     booking.timeSlot.id,
