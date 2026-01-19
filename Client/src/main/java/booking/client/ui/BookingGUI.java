@@ -29,9 +29,15 @@ public class BookingGUI extends JFrame {
     private JPanel mainCardPanel;
     private ThemeManager themeManager;
 
+    private enum RequestedDataType {
+        SLOTS, BOOKINGS, NONE
+    }
+
+    private RequestedDataType lastRequest = RequestedDataType.NONE;
+
     public BookingGUI() {
         themeManager = ThemeManager.getInstance();
-        
+
         setTitle("Booking System");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1000, 700);
@@ -67,9 +73,39 @@ public class BookingGUI extends JFrame {
         setVisible(true);
     }
 
+    private void updateTheme() {
+        SwingUtilities.invokeLater(() -> {
+            mainCardPanel.setBackground(themeManager.getBackgroundColor());
+            mainCardPanel.repaint();
+
+            // Find main panel and update it
+            for (Component comp : mainCardPanel.getComponents()) {
+                if (comp instanceof JPanel) {
+                    updateComponentTheme((JPanel) comp);
+                }
+            }
+        });
+    }
+
+    private void updateComponentTheme(JPanel panel) {
+        panel.setBackground(themeManager.getBackgroundColor());
+        panel.setForeground(themeManager.getTextColor());
+
+        for (Component comp : panel.getComponents()) {
+            if (comp instanceof JPanel) {
+                updateComponentTheme((JPanel) comp);
+            } else if (comp instanceof JLabel) {
+                ((JLabel) comp).setForeground(themeManager.getTextColor());
+            }
+        }
+
+        panel.revalidate();
+        panel.repaint();
+    }
+
     private JPanel createMainPanel() {
         JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
-        mainPanel.setBackground(new Color(245, 245, 245));
+        mainPanel.setBackground(themeManager.getBackgroundColor());
         mainPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
 
         // Header
@@ -79,7 +115,8 @@ public class BookingGUI extends JFrame {
         // Tabbed pane
         tabbedPane = new JTabbedPane();
         tabbedPane.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        tabbedPane.setBackground(new Color(255, 255, 255));
+        tabbedPane.setBackground(themeManager.getPanelBackground());
+        tabbedPane.setForeground(themeManager.getTextColor());
 
         // Available Slots tab
         slotsPanel = createSlotsPanel();
@@ -101,26 +138,23 @@ public class BookingGUI extends JFrame {
     private JPanel createHeaderPanel() {
         JPanel headerPanel = new JPanel();
         headerPanel.setLayout(new BorderLayout());
-        headerPanel.setBackground(new Color(63, 81, 181));
+        headerPanel.setBackground(themeManager.getHeaderBackground());
         headerPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
 
         JLabel titleLabel = new JLabel("Booking System");
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 28));
-        titleLabel.setForeground(Color.WHITE);
+        titleLabel.setForeground(themeManager.getTextColor());
 
         JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
-        rightPanel.setBackground(new Color(63, 81, 181));
+        rightPanel.setBackground(themeManager.getHeaderBackground());
 
-        userButton = new JButton("User");
-        userButton.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        userButton.setBackground(new Color(255, 255, 255));
-        userButton.setForeground(new Color(63, 81, 181));
-        userButton.setFocusPainted(false);
-        userButton.setBorderPainted(false);
-        userButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        userButton.addActionListener(e -> showUserProfile());
+        menuButton = new ModernButton("Menu", themeManager.getAccentGreen(),
+                new Color(104, 189, 107));
+        menuButton.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        menuButton.setPreferredSize(new Dimension(100, 40));
+        menuButton.addActionListener(e -> showMenu());
 
-        rightPanel.add(userButton);
+        rightPanel.add(menuButton);
 
         headerPanel.add(titleLabel, BorderLayout.WEST);
         headerPanel.add(rightPanel, BorderLayout.EAST);
@@ -130,28 +164,29 @@ public class BookingGUI extends JFrame {
 
     private JPanel createSlotsPanel() {
         JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
-        mainPanel.setBackground(new Color(245, 245, 245));
+        mainPanel.setBackground(themeManager.getBackgroundColor());
         mainPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
 
-        JButton refreshBtn = new ModernButton("Refresh", new Color(33, 150, 243), new Color(66, 165, 245));
+        JButton refreshBtn = new ModernButton("Refresh", themeManager.getAccentGreen(),
+                new Color(104, 189, 107));
         refreshBtn.setPreferredSize(new Dimension(130, 40));
         refreshBtn.addActionListener(e -> loadAvailableSlots());
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        buttonPanel.setBackground(new Color(245, 245, 245));
+        buttonPanel.setBackground(themeManager.getBackgroundColor());
         buttonPanel.add(refreshBtn);
 
         JPanel listPanel = new JPanel();
         listPanel.setLayout(new BoxLayout(listPanel, BoxLayout.Y_AXIS));
-        listPanel.setBackground(new Color(245, 245, 245));
+        listPanel.setBackground(themeManager.getBackgroundColor());
 
         JScrollPane scrollPane = new JScrollPane(listPanel);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
         scrollPane.setBorder(null);
-        scrollPane.setBackground(new Color(245, 245, 245));
-        scrollPane.getViewport().setBackground(new Color(245, 245, 245));
+        scrollPane.setBackground(themeManager.getBackgroundColor());
+        scrollPane.getViewport().setBackground(themeManager.getBackgroundColor());
 
         mainPanel.add(buttonPanel, BorderLayout.NORTH);
         mainPanel.add(scrollPane, BorderLayout.CENTER);
@@ -163,28 +198,29 @@ public class BookingGUI extends JFrame {
 
     private JPanel createBookingsPanel() {
         JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
-        mainPanel.setBackground(new Color(245, 245, 245));
+        mainPanel.setBackground(themeManager.getBackgroundColor());
         mainPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
 
-        JButton refreshBtn = new ModernButton("Refresh", new Color(33, 150, 243), new Color(66, 165, 245));
+        JButton refreshBtn = new ModernButton("Refresh", themeManager.getAccentGreen(),
+                new Color(104, 189, 107));
         refreshBtn.setPreferredSize(new Dimension(130, 40));
         refreshBtn.addActionListener(e -> loadMyBookings());
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        buttonPanel.setBackground(new Color(245, 245, 245));
+        buttonPanel.setBackground(themeManager.getBackgroundColor());
         buttonPanel.add(refreshBtn);
 
         JPanel listPanel = new JPanel();
         listPanel.setLayout(new BoxLayout(listPanel, BoxLayout.Y_AXIS));
-        listPanel.setBackground(new Color(245, 245, 245));
+        listPanel.setBackground(themeManager.getBackgroundColor());
 
         JScrollPane scrollPane = new JScrollPane(listPanel);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
         scrollPane.setBorder(null);
-        scrollPane.setBackground(new Color(245, 245, 245));
-        scrollPane.getViewport().setBackground(new Color(245, 245, 245));
+        scrollPane.setBackground(themeManager.getBackgroundColor());
+        scrollPane.getViewport().setBackground(themeManager.getBackgroundColor());
 
         mainPanel.add(buttonPanel, BorderLayout.NORTH);
         mainPanel.add(scrollPane, BorderLayout.CENTER);
@@ -197,14 +233,15 @@ public class BookingGUI extends JFrame {
     private JPanel createFooterPanel() {
         JPanel footerPanel = new JPanel();
         footerPanel.setLayout(new BorderLayout());
-        footerPanel.setBackground(new Color(245, 245, 245));
-        footerPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(200, 200, 200)));
+        footerPanel.setBackground(themeManager.getBackgroundColor());
+        footerPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, themeManager.getBorderColor()));
 
         statusLabel = new JLabel("Disconnected");
         statusLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         statusLabel.setForeground(new Color(244, 67, 54));
 
-        JButton exitBtn = new ModernButton("Exit", new Color(244, 67, 54), new Color(229, 57, 53));
+        JButton exitBtn = new ModernButton("Exit", new Color(244, 67, 54),
+                new Color(245, 87, 74));
         exitBtn.setPreferredSize(new Dimension(100, 35));
         exitBtn.addActionListener(e -> exit());
 
@@ -214,6 +251,30 @@ public class BookingGUI extends JFrame {
         return footerPanel;
     }
 
+    private void showMenu() {
+        JPopupMenu menu = new JPopupMenu();
+        menu.setBackground(themeManager.getPanelBackground());
+
+        JMenuItem myAccountItem = new JMenuItem("My Account");
+        myAccountItem.setBackground(themeManager.getPanelBackground());
+        myAccountItem.setForeground(themeManager.getTextColor());
+        myAccountItem.addActionListener(e -> showUserProfile());
+
+        JMenuItem themeItem = new JMenuItem("Theme: " + (themeManager.isDarkMode() ? "Dark" : "Light"));
+        themeItem.setBackground(themeManager.getPanelBackground());
+        themeItem.setForeground(themeManager.getTextColor());
+        themeItem.addActionListener(e -> {
+            themeManager.toggleTheme();
+            showMenu();
+        });
+
+        menu.add(myAccountItem);
+        menu.addSeparator();
+        menu.add(themeItem);
+
+        menu.show(menuButton, 0, menuButton.getHeight());
+    }
+
     private void connectToServer() {
         new Thread(() -> {
             try {
@@ -221,7 +282,7 @@ public class BookingGUI extends JFrame {
                 connected = true;
                 SwingUtilities.invokeLater(() -> {
                     statusLabel.setText("Connected");
-                    statusLabel.setForeground(new Color(76, 175, 80));
+                    statusLabel.setForeground(themeManager.getAccentGreen());
                 });
             } catch (IOException e) {
                 SwingUtilities.invokeLater(() -> {
@@ -249,7 +310,7 @@ public class BookingGUI extends JFrame {
                         currentUser = (UserDTO) data;
                         authenticated = true;
                         SwingUtilities.invokeLater(() -> {
-                            userButton.setText(currentUser.username);
+                            menuButton.setText(currentUser.username);
                             mainCardLayout.show(mainCardPanel, "MAIN");
                             setupDataCallbackForBookings();
                             loadAvailableSlotsSequential();
@@ -318,16 +379,20 @@ public class BookingGUI extends JFrame {
                     if (first instanceof TimeSlotDTO) {
                         currentSlots = (List<TimeSlotDTO>) list;
                         SwingUtilities.invokeLater(this::displaySlots);
+                        lastRequest = RequestedDataType.NONE;
                     } else if (first instanceof BookingDTO) {
                         currentBookings = (List<BookingDTO>) list;
                         SwingUtilities.invokeLater(this::displayBookings);
+                        lastRequest = RequestedDataType.NONE;
                     }
                 } else {
+                    RequestedDataType req = lastRequest;
+                    lastRequest = RequestedDataType.NONE;
                     SwingUtilities.invokeLater(() -> {
-                        if (tabbedPane.getSelectedIndex() == 0) {
+                        if (req == RequestedDataType.SLOTS) {
                             currentSlots = new ArrayList<>();
                             displaySlots();
-                        } else if (tabbedPane.getSelectedIndex() == 1) {
+                        } else if (req == RequestedDataType.BOOKINGS) {
                             currentBookings = new ArrayList<>();
                             displayBookings();
                         }
@@ -340,8 +405,10 @@ public class BookingGUI extends JFrame {
     private void loadAvailableSlotsSequential() {
         new Thread(() -> {
             try {
+                lastRequest = RequestedDataType.SLOTS;
                 client.sendCommand(new ListSlotsCommand());
                 Thread.sleep(500);
+                lastRequest = RequestedDataType.BOOKINGS;
                 client.sendCommand(new MyBookingsCommand());
             } catch (IOException e) {
                 SwingUtilities.invokeLater(() -> {
@@ -362,6 +429,7 @@ public class BookingGUI extends JFrame {
 
         new Thread(() -> {
             try {
+                lastRequest = RequestedDataType.SLOTS;
                 client.sendCommand(new ListSlotsCommand());
             } catch (IOException e) {
                 SwingUtilities.invokeLater(() -> {
@@ -379,7 +447,7 @@ public class BookingGUI extends JFrame {
         if (currentSlots.isEmpty()) {
             JLabel emptyLabel = new JLabel("No available slots");
             emptyLabel.setFont(new Font("Segoe UI", Font.ITALIC, 14));
-            emptyLabel.setForeground(new Color(158, 158, 158));
+            emptyLabel.setForeground(themeManager.getTextSecondaryColor());
             listPanel.add(emptyLabel);
         } else {
             for (TimeSlotDTO slot : currentSlots) {
@@ -454,6 +522,7 @@ public class BookingGUI extends JFrame {
 
         new Thread(() -> {
             try {
+                lastRequest = RequestedDataType.BOOKINGS;
                 client.sendCommand(new MyBookingsCommand());
             } catch (IOException e) {
                 SwingUtilities.invokeLater(() -> {
@@ -471,7 +540,7 @@ public class BookingGUI extends JFrame {
         if (currentBookings.isEmpty()) {
             JLabel emptyLabel = new JLabel("No bookings yet");
             emptyLabel.setFont(new Font("Segoe UI", Font.ITALIC, 14));
-            emptyLabel.setForeground(new Color(158, 158, 158));
+            emptyLabel.setForeground(themeManager.getTextSecondaryColor());
             listPanel.add(emptyLabel);
         } else {
             for (BookingDTO booking : currentBookings) {
@@ -541,15 +610,21 @@ public class BookingGUI extends JFrame {
         if (currentUser == null)
             return;
 
-        JDialog profileDialog = new JDialog(this, "User Profile", true);
+        JDialog profileDialog = new JDialog(this, "My Account", true);
         profileDialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-        profileDialog.setSize(350, 400);
+        profileDialog.setSize(400, 450);
         profileDialog.setLocationRelativeTo(this);
 
-        UserProfilePanel profilePanel = new UserProfilePanel(currentUser, v -> {
-            profileDialog.dispose();
-            logout();
-        });
+        EditableUserProfilePanel profilePanel = new EditableUserProfilePanel(
+                updatedUser -> {
+                    // Handle user info update if needed
+                    currentUser = updatedUser;
+                },
+                v -> {
+                    profileDialog.dispose();
+                    logout();
+                });
+        profilePanel.setUser(currentUser);
 
         profileDialog.add(profilePanel);
         profileDialog.setVisible(true);
@@ -560,7 +635,7 @@ public class BookingGUI extends JFrame {
         currentUser = null;
         currentSlots.clear();
         currentBookings.clear();
-        userButton.setText("User");
+        menuButton.setText("Menu");
         mainCardLayout.show(mainCardPanel, "AUTH");
         AuthPanel authPanel = (AuthPanel) mainCardPanel.getComponent(0);
         authPanel.clearFields();

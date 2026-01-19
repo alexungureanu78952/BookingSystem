@@ -82,24 +82,24 @@ public class EditableUserProfilePanel extends JPanel {
         JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
         buttonsPanel.setOpaque(false);
 
-        editButton = new ModernButton("Edit", themeManager.getAccentGreen(), 
+        editButton = new ModernButton("Edit", themeManager.getAccentGreen(),
                 new Color(104, 189, 107));
         editButton.setPreferredSize(new Dimension(100, 35));
         editButton.addActionListener(e -> startEditing());
 
-        saveButton = new ModernButton("Save", themeManager.getAccentGreen(), 
+        saveButton = new ModernButton("Save", themeManager.getAccentGreen(),
                 new Color(104, 189, 107));
         saveButton.setPreferredSize(new Dimension(100, 35));
         saveButton.setVisible(false);
         saveButton.addActionListener(e -> saveChanges());
 
-        cancelButton = new ModernButton("Cancel", new Color(200, 200, 200), 
+        cancelButton = new ModernButton("Cancel", new Color(200, 200, 200),
                 new Color(220, 220, 220));
         cancelButton.setPreferredSize(new Dimension(100, 35));
         cancelButton.setVisible(false);
         cancelButton.addActionListener(e -> cancelEditing());
 
-        logoutButton = new ModernButton("Logout", new Color(244, 67, 54), 
+        logoutButton = new ModernButton("Logout", new Color(244, 67, 54),
                 new Color(245, 87, 74));
         logoutButton.setPreferredSize(new Dimension(100, 35));
         logoutButton.addActionListener(e -> logout());
@@ -152,8 +152,7 @@ public class EditableUserProfilePanel extends JPanel {
             UserDTO updatedUser = new UserDTO(
                     user.username,
                     emailField.getText(),
-                    fullNameField.getText()
-            );
+                    fullNameField.getText());
             onSave.accept(updatedUser);
             setUser(updatedUser);
             cancelEditing();
