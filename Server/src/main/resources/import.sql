@@ -7,5 +7,8 @@ INSERT INTO time_slots (id, start_time, end_time, description, available, versio
 INSERT INTO time_slots (id, start_time, end_time, description, available, version) VALUES (7, '2025-01-21 11:00:00', '2025-01-21 12:00:00', 'Sesiune Feedback', true, 0) ON CONFLICT (id) DO NOTHING;
 INSERT INTO time_slots (id, start_time, end_time, description, available, version) VALUES (8, '2025-01-22 10:00:00', '2025-01-22 11:00:00', 'Prezentare Demo', true, 0) ON CONFLICT (id) DO NOTHING;
 
+INSERT INTO users (id, username, password_hash, email, full_name) VALUES (1, 'demo', 'j6ggNHl0UoSXGCU4nHl84BW2H1qYD3/1dplr0HvMvrc=', 'demo@example.com', 'Demo User') ON CONFLICT (username) DO NOTHING;
+
 SELECT setval('time_slots_id_seq', (SELECT MAX(id) FROM time_slots));
 SELECT setval('bookings_id_seq', COALESCE((SELECT MAX(id) FROM bookings), 1));
+SELECT setval('users_id_seq', COALESCE((SELECT MAX(id) FROM users), 1));

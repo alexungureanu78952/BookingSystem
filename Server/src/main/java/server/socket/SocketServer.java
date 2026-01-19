@@ -1,6 +1,7 @@
 package server.socket;
 
 import server.service.BookingService;
+import server.service.AuthService;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -27,11 +28,14 @@ public class SocketServer {
     private ServerSocket serverSocket;
     private ExecutorService executorService;
     private volatile boolean running = false;
-    
+
     private final Map<String, ClientHandler> activeClients = new ConcurrentHashMap<>();
 
     @Inject
     BookingService bookingService;
+
+    @Inject
+    AuthService authService;
 
     void onStart(@Observes StartupEvent event) {
         LOG.info("=== Starting Socket Server ===");
@@ -66,13 +70,13 @@ public class SocketServer {
                             clientSocket,
                             clientToken,
                             bookingService,
-                            this
-                    );
-                    
+                            this,
+                            authService);
+
                     activeClients.put(clientToken, handler);
 
                     executorService.submit(handler);
-                    
+
                     LOG.info("Active clients: " + activeClients.size());
 
                 } catch (IOException e) {
@@ -87,7 +91,7 @@ public class SocketServer {
             e.printStackTrace();
         }
     }
-    
+
     public void unregisterClient(String token) {
         activeClients.remove(token);
         LOG.info("Client disconnected: " + token + ". Active clients: " + activeClients.size());

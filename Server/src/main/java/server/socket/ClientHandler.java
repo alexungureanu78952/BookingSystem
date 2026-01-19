@@ -2,8 +2,10 @@ package server.socket;
 
 import server.entity.Booking;
 import server.entity.TimeSlot;
+import server.entity.User;
 import server.exception.BookingException;
 import server.service.BookingService;
+import server.service.AuthService;
 import shareable.*;
 
 import java.io.IOException;
@@ -22,15 +24,19 @@ public class ClientHandler implements Runnable {
     private final String clientToken;
     private final BookingService bookingService;
     private final SocketServer socketServer;
+    private final AuthService authService;
 
     private ObjectInputStream in;
     private ObjectOutputStream out;
+    private Long userId;
 
-    public ClientHandler(Socket socket, String clientToken, BookingService bookingService, SocketServer socketServer) {
+    public ClientHandler(Socket socket, String clientToken, BookingService bookingService, SocketServer socketServer,
+            AuthService authService) {
         this.socket = socket;
         this.clientToken = clientToken;
         this.bookingService = bookingService;
         this.socketServer = socketServer;
+        this.authService = authService;
     }
 
     @Override
@@ -47,7 +53,7 @@ public class ClientHandler implements Runnable {
                     Object object = in.readObject();
                     if (object instanceof Command) {
                         handleCommand((Command) object);
-                        
+
                         if (object instanceof ExitCommand) {
                             break;
                         }
@@ -76,7 +82,13 @@ public class ClientHandler implements Runnable {
 
     private void handleCommand(Command command) throws IOException {
         try {
-            if (command instanceof ListSlotsCommand) {
+            if (command instanceof LoginCommand) {
+                handleLogin((LoginCommand) command);
+            } else if (command instanceof RegisterCommand) {
+                handleRegister((RegisterCommand) command);
+            } else if (command instanceof GetUserCommand) {
+                handleGetUser();
+            } else if (command instanceof ListSlotsCommand) {
                 handleList();
             } else if (command instanceof ReserveCommand) {
                 handleReserve((ReserveCommand) command);
@@ -98,7 +110,7 @@ public class ClientHandler implements Runnable {
     private void handleList() throws IOException {
         List<TimeSlot> slots = bookingService.getAvailableSlots();
         List<TimeSlotDTO> dtos = new ArrayList<>();
-        
+
         for (TimeSlot slot : slots) {
             dtos.add(new TimeSlotDTO(slot.id, slot.description, slot.startTime, slot.endTime));
         }
@@ -114,8 +126,7 @@ public class ClientHandler implements Runnable {
                     booking.timeSlot.id,
                     booking.timeSlot.description,
                     booking.bookedAt,
-                    booking.timeSlot.startTime
-            );
+                    booking.timeSlot.startTime);
             out.writeObject(new ServerResponse(ServerResponse.Status.SUCCESS, "Booking created successfully!", dto));
         } catch (BookingException e) {
             out.writeObject(new ServerResponse(ServerResponse.Status.ERROR, e.getMessage()));
@@ -125,17 +136,16 @@ public class ClientHandler implements Runnable {
     private void handleMyBookings() throws IOException {
         List<Booking> bookings = bookingService.getClientBookings(clientToken);
         List<BookingDTO> dtos = new ArrayList<>();
-        
+
         for (Booking booking : bookings) {
             dtos.add(new BookingDTO(
                     booking.id,
                     booking.timeSlot.id,
                     booking.timeSlot.description,
                     booking.bookedAt,
-                    booking.timeSlot.startTime
-            ));
+                    booking.timeSlot.startTime));
         }
-        
+
         out.writeObject(new ServerResponse(ServerResponse.Status.SUCCESS, "Active bookings fetched", dtos));
     }
 
@@ -152,10 +162,53 @@ public class ClientHandler implements Runnable {
         out.writeObject(new ServerResponse(ServerResponse.Status.DONE, "Goodbye!"));
     }
 
+    private void handleLogin(LoginCommand cmd) throws IOException {
+        try {
+            User user = authService.login(cmd.username, cmd.password);
+            this.userId = user.id;
+            UserDTO dto = new UserDTO(user.username, user.email, user.fullName);
+            out.writeObject(new ServerResponse(ServerResponse.Status.SUCCESS, "Login successful!", dto));
+        } catch (Exception e) {
+            out.writeObject(new ServerResponse(ServerResponse.Status.ERROR, e.getMessage()));
+        }
+    }
+
+    private void handleRegister(RegisterCommand cmd) throws IOException {
+        try {
+            authService.register(cmd.username, cmd.password, cmd.email, cmd.fullName);
+            out.writeObject(
+                    new ServerResponse(ServerResponse.Status.SUCCESS, "Registration successful! Please login."));
+        } catch (Exception e) {
+            out.writeObject(new ServerResponse(ServerResponse.Status.ERROR, e.getMessage()));
+        }
+    }
+
+    private void handleGetUser() throws IOException {
+        if (userId == null) {
+            out.writeObject(new ServerResponse(ServerResponse.Status.ERROR, "Not authenticated"));
+            return;
+        }
+
+        try {
+            User user = User.findById(userId);
+            if (user == null) {
+                out.writeObject(new ServerResponse(ServerResponse.Status.ERROR, "User not found"));
+                return;
+            }
+
+            UserDTO dto = new UserDTO(user.username, user.email, user.fullName);
+            out.writeObject(new ServerResponse(ServerResponse.Status.SUCCESS, "User info retrieved", dto));
+        } catch (Exception e) {
+            out.writeObject(new ServerResponse(ServerResponse.Status.ERROR, e.getMessage()));
+        }
+    }
+
     private void closeConnection() {
         try {
-            if (in != null) in.close();
-            if (out != null) out.close();
+            if (in != null)
+                in.close();
+            if (out != null)
+                out.close();
             if (socket != null && !socket.isClosed()) {
                 socket.close();
             }
